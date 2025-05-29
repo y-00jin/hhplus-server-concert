@@ -28,4 +28,6 @@
 #### [🔗 요구사항 분석](https://github.com/y-00jin/hhplus-server-concert/tree/main/docs/01_requirements.md)
 #### [🔗 시퀀스 다이어그램](https://github.com/y-00jin/hhplus-server-concert/tree/main/docs/02_sequence-diagram.md)
 #### [🔗 엔티티 관계 다이어그램(ERD)](https://github.com/y-00jin/hhplus-server-concert/tree/main/docs/03_erd.md)
+#### [🔗 인프라 구성도](https://github.com/y-00jin/hhplus-server-concert/tree/main/docs/04_infra.md)
+
 
