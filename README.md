@@ -26,3 +26,5 @@
 
 #### [📆 프로젝트 일정](https://github.com/users/y-00jin/projects/2/views/1)
 #### [🔗 요구사항 분석](https://github.com/y-00jin/hhplus-server-concert/tree/main/docs/01_requirements.md)
+#### [🔗 시퀀스 다이어그램](https://github.com/y-00jin/hhplus-server-concert/tree/main/docs/02_sequence-diagram.md)
+
