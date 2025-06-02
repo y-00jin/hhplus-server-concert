@@ -21,13 +21,13 @@
 - 대기열 개념을 고려해 구현합니다.
 
 
-### [📁 관련 기술 문서](https://github.com/y-00jin/hhplus-server-concert/tree/main/docs)
+### [📁 관련 기술 문서](docs/)
 
 #### [📆 프로젝트 일정](https://github.com/users/y-00jin/projects/2/views/1)
-#### [🔗 요구사항 분석](https://github.com/y-00jin/hhplus-server-concert/tree/main/docs/01_requirements.md)
-#### [🔗 시퀀스 다이어그램](https://github.com/y-00jin/hhplus-server-concert/tree/main/docs/02_sequence-diagram.md)
-#### [🔗 엔티티 관계 다이어그램(ERD)](https://github.com/y-00jin/hhplus-server-concert/tree/main/docs/03_erd.md)
-#### [🔗 인프라 구성도](https://github.com/y-00jin/hhplus-server-concert/tree/main/docs/04_infra.md)
+#### [🔗 요구사항 분석](docs/01_requirements.md)
+#### [🔗 시퀀스 다이어그램](docs/02_sequenceDiagram.md)
+#### [🔗 엔티티 관계 다이어그램(ERD)](docs/03_erd.md)
+#### [🔗 인프라 구성도](docs/04_infra.md)
 
 
 ---
