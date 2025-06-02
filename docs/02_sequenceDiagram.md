@@ -21,19 +21,20 @@ sequenceDiagram
 	QueueService ->> QueueService: 기존 유효 토큰 조회
 	
 	alt 기존 유효 토큰 존재
-		QueueService -->> TokenAPI: 기존 대기열 토큰 반환
+		QueueService -->> TokenAPI: 기존 대기열 토큰(ID) 반환
 	else 기존 유효 토큰 없음
-		QueueService ->> QueueService: 토큰 생성(UUID, 순서, 시간 기반)
-		QueueService ->> QueueService: 대기열 등록
-		QueueService -->> TokenAPI: 신규 대기열 토큰 반환
+		QueueService ->> QueueService: UUID 기반 토큰 생성
+		QueueService ->> QueueService: 대기열 DB에 등록 (순번, 시간 등은 내부 관리)
+		QueueService -->> TokenAPI: 신규 대기열 토큰(ID) 반환
 	end
 	
 	TokenAPI -->>- 사용자: 대기열 토큰 반환
 	
 	loop 일정 시간 간격으로 폴링
 		사용자 ->> QueueService: 대기열 상태 조회 (토큰 포함)
-		QueueService ->> QueueService: 현재 순서 확인
-		QueueService -->> 사용자: 대기 순서 및 잔여 시간 반환
+		QueueService ->> Redis: 현재 순서 및 토큰 위치 조회
+		Redis -->> QueueService: 순번 및 예상 대기 시간
+		QueueService -->> 사용자: 대기 순서 반환
 	end
 ```
 
@@ -50,20 +51,30 @@ sequenceDiagram
 	actor 사용자 as 사용자
 	participant ScheduleAPI as 콘서트 일정 API
 	participant QueueService as 대기열 서비스
+	participant Redis as Redis
 	participant ScheduleService as 콘서트 일정 서비스
+
 	
-	사용자 ->>+ ScheduleAPI:예약 가능 날짜 목록 조회 요청
-	ScheduleAPI ->>+ QueueService:대기열 토큰 상태 검증
-	
-	opt 대기열 토큰 상태가 유효하지 않음
+	사용자 ->>+ ScheduleAPI: 예약 가능 날짜 목록 조회 요청
+	ScheduleAPI ->>+ QueueService: 대기열 토큰 상태 및 순번 검증
+	QueueService ->>+ Redis: 현재 입장 가능 순번 조회
+	Redis -->>- QueueService: 현재 순번 반환
+
+	alt 토큰 상태 : 만료/취소/예약완료
 		QueueService -->> ScheduleAPI: 검증 실패
 		ScheduleAPI -->> 사용자: 대기열 토큰 오류 응답
+	else 토큰 상태 : 대기
+		alt 순번 도달 전
+			QueueService -->> ScheduleAPI: 순번 대기중
+			ScheduleAPI -->> 사용자: 순번 대기중
+		else 입장 가능
+			QueueService -->> ScheduleAPI: 검증 성공
+			ScheduleAPI ->>+ ScheduleService: 예약 가능 날짜 목록 조회
+			ScheduleService -->>- ScheduleAPI: 예약 가능 날짜 목록 반환
+			ScheduleAPI -->> 사용자: 예약 가능 날짜 목록 반환
+		end
 	end
-	
-	QueueService -->>- ScheduleAPI: 검증 성공
-	ScheduleAPI ->>+ ScheduleService:예약 가능 날짜 목록 조회
-	ScheduleService -->>- ScheduleAPI:예약 가능 날짜 목록 반환
-	ScheduleAPI -->>- 사용자: 예약 가능 날짜 목록 반환
+
 ```
 
 # 예약 가능 좌석 조회
@@ -79,29 +90,38 @@ sequenceDiagram
 	actor 사용자 as 사용자
 	participant ScheduleAPI as 콘서트 일정 API
 	participant QueueService as 대기열 서비스
+	participant Redis as Redis
 	participant ScheduleService as 콘서트 일정 서비스
 	participant SeatService as 콘서트 좌석 서비스
 	
-	사용자 ->>+ ScheduleAPI:특정 날짜의 예약 가능 좌석 조회 요청
-	ScheduleAPI ->>+ QueueService:대기열 토큰 상태 검증
-	opt 대기열 토큰 상태가 유효하지 않음
+	사용자 ->>+ ScheduleAPI: 특정 날짜의 예약 가능 좌석 조회 요청
+	ScheduleAPI ->>+ QueueService: 대기열 토큰 상태 및 순번 검증
+	QueueService ->>+ Redis: 현재 입장 가능 순번 조회
+	Redis -->>- QueueService: 현재 순번 반환
+	
+	alt 토큰 상태 : 만료/취소/예약완료
 		QueueService -->> ScheduleAPI: 검증 실패
 		ScheduleAPI -->> 사용자: 대기열 토큰 오류 응답
+	else 토큰 상태 : 대기
+		alt 순번 도달 전
+			QueueService -->> ScheduleAPI: 순번 대기중
+			ScheduleAPI -->> 사용자: 순번 대기중
+		else 입장 가능
+			QueueService -->> ScheduleAPI: 검증 성공
+			ScheduleAPI ->>+ ScheduleService: 특정 날짜의 콘서트 일정 조회
+			
+			opt 콘서트 일정 없음
+				ScheduleService -->> ScheduleAPI: 콘서트 일정 조회 실패
+				ScheduleAPI -->> 사용자: 잘못된 요청 오류 응답
+			end
+			
+			ScheduleService -->>- ScheduleAPI: 콘서트 일정 정보 반환
+			
+			ScheduleAPI ->>+ SeatService: 예약 가능 좌석 조회
+			SeatService -->>- ScheduleAPI: 예약 가능 좌석 목록 반환
+			ScheduleAPI -->>- 사용자: 예약 가능 좌석 목록 반환
+		end
 	end
-	
-	QueueService -->>- ScheduleAPI: 검증 성공
-	ScheduleAPI ->>+ ScheduleService: 특정 날짜의 콘서트 일정 조회
-	
-	opt 콘서트 일정 없음
-		ScheduleService -->> ScheduleAPI: 콘서트 일정 조회 실패
-		ScheduleAPI -->> 사용자: 잘못된 요청 오류 응답
-	end
-	
-	ScheduleService -->>- ScheduleAPI: 콘서트 일정 정보 반환
-
-	ScheduleAPI ->>+ SeatService:예약 가능 좌석 조회
-	SeatService -->>- ScheduleAPI:예약 가능 좌석 목록 반환
-	ScheduleAPI -->>- 사용자: 예약 가능 좌석 목록 반환
 ```
 
 
@@ -180,42 +200,50 @@ sequenceDiagram
 	actor 사용자 as 사용자
 	participant ReservationAPI as 예약 API
 	participant QueueService as 대기열 서비스
+	participant Redis as Redis
 	participant ReservationService as 예약 서비스
 	participant ScheduleService as 일정 서비스
 	participant SeatService as 좌석 서비스
 	
 	사용자 ->>+ ReservationAPI: 좌석 예약 요청
-	ReservationAPI ->>+ QueueService: 대기열 토큰 상태 검증
-
-	opt 대기열 토큰 상태가 유효하지 않음
-		QueueService -->> ReservationAPI:검증 실패
-		ReservationAPI -->> 사용자:대기열 토큰 오류 응답
+	ReservationAPI ->>+ QueueService: 대기열 토큰 상태 및 순번 검증
+	QueueService ->>+ Redis: 현재 입장 가능 순번 조회
+	Redis -->>- QueueService: 현재 순번 반환
+	
+	alt 토큰 상태 : 만료/취소/예약완료
+		QueueService -->> ReservationAPI: 검증 실패
+		ReservationAPI -->> 사용자: 대기열 토큰 오류 응답
+	else 토큰 상태 : 대기
+		alt 순번 도달 전
+			QueueService -->> ReservationAPI: 순번 대기중
+			ReservationAPI -->> 사용자: 순번 대기중 응답
+		else 입장 가능
+			QueueService -->> ReservationAPI: 검증 성공
+			
+			ReservationAPI ->>+ ReservationService: 좌석 예약 처리 요청
+			ReservationService ->>+ ScheduleService: 콘서트 일정 확인
+			ScheduleService -->>- ReservationService: 일정 정보 반환
+			
+			opt 콘서트 일정 없음
+				ReservationService -->> ReservationAPI : 잘못된 요청 오류 응답
+				ReservationAPI -->> 사용자 : 잘못된 요청 오류 응답
+			end
+			
+			ReservationService ->>+ SeatService: 좌석 상태 확인
+			SeatService -->>- ReservationService: 예약 가능 여부 응답
+			
+			opt 예약 불가능
+				ReservationService -->> ReservationAPI: 좌석 예약 불가 응답
+				ReservationAPI --> 사용자: 좌석 예약 불가 응답
+			end
+			
+			ReservationService ->> ReservationService: 좌석 예약 내역 생성
+			ReservationService ->> SeatService: 좌석 상태 임시 예약으로 변경
+			SeatService -->> ReservationService: 변경된 좌석 정보 반환
+			ReservationService -->>- ReservationAPI: 예약 결과 반환
+			ReservationAPI -->>- 사용자: 예약 결과 반환
+		end
 	end
-	
-	QueueService -->>- ReservationAPI: 검증 성공
-	
-	ReservationAPI ->>+ ReservationService: 좌석 예약 처리 요청
-	ReservationService ->>+ ScheduleService: 콘서트 일정 확인
-	ScheduleService -->>- ReservationService: 일정 정보 반환
-	
-	opt 콘서트 일정 없음
-		ReservationService -->> ReservationAPI : 잘못된 요청 오류 응답
-		ReservationAPI -->> 사용자 : 잘못된 요청 오류 응답
-	end
-	
-	ReservationService ->>+ SeatService: 좌석 상태 확인
-	SeatService -->>- ReservationService: 예약 가능 여부 응답
-	
-	opt 예약 불가능
-		ReservationService -->> ReservationAPI: 좌석 예약 불가 응답
-		ReservationAPI --> 사용자: 좌석 예약 불가 응답
-	end
-	
-	ReservationService ->> ReservationService: 좌석 예약 내역 생성
-	ReservationService ->> SeatService: 좌석 상태 임시 예약으로 변경
-	SeatService -->> ReservationService: 변경된 좌석 정보 반환
-	ReservationService -->>- ReservationAPI: 예약 결과 반환
-	ReservationAPI -->>- 사용자: 예약 결과 반환
 
 ```
 
@@ -234,45 +262,53 @@ sequenceDiagram
 	autonumber
 	actor 사용자 as 사용자
 	participant PaymentAPI as 결제 API
-	participant QueueService as 대기열 서비스	
+	participant QueueService as 대기열 서비스
+	participant Redis as Redis
 	participant PaymentService as 결제 서비스
 	participant ReservationService as 예약 서비스
 	participant BalanceHistoryService as 잔액 내역 서비스
 	participant SeatService as 좌석 서비스
 
 	사용자 ->>+ PaymentAPI: 예약 좌석 결제 요청
-	PaymentAPI ->>+ QueueService: 대기열 토큰 상태 검증 
-	
-	opt 대기열 토큰 상태가 유효하지 않음
-		QueueService -->> PaymentAPI:검증 실패
-		PaymentAPI -->> 사용자:대기열 토큰 오류 응답
+	PaymentAPI ->>+ QueueService: 대기열 토큰 상태 및 순번 검증 
+	QueueService ->>+ Redis: 현재 입장 가능 순번 조회
+	Redis -->>- QueueService: 현재 순번 반환
+
+	alt 토큰 상태 : 만료/취소/예약완료
+		QueueService -->> PaymentAPI: 검증 실패
+		PaymentAPI -->> 사용자: 대기열 토큰 오류 응답
+	else 토큰 상태 : 대기
+		alt 순번 도달 전
+			QueueService -->> PaymentAPI: 순번 대기중
+			PaymentAPI -->> 사용자: 순번 대기중 응답
+		else 입장 가능
+			QueueService -->>- PaymentAPI: 검증 성공 
+			PaymentAPI ->>+ PaymentService: 결제 요청
+		
+			PaymentService ->>+ ReservationService: 예약 조회
+			ReservationService -->>- PaymentService:예약 정보 반환
+			
+			opt 예약 정보 없음
+				PaymentService -->> PaymentAPI : 잘못된 요청 오류 응답
+				PaymentAPI -->> 사용자 : 잘못된 요청 오류 응답
+			end
+			
+			PaymentService ->>+ BalanceHistoryService : 잔액 내역 생성 (콘서트 가격만큼 사용)
+			BalanceHistoryService -->>- PaymentService : 잔액 내역 반환
+			PaymentService ->> PaymentService : 결제 처리 (결제 내역 생성)
+			PaymentService ->>+ReservationService : 예약 정보 변경 요청(예약 상태 : 예약 확정, 예약 만료 시각 : 제거)
+			ReservationService -->>-PaymentService : 변경된 예약 정보 반환
+		
+			PaymentService ->>+ SeatService : 좌석 정보 변경 요청 (좌석 상태 : 예약 확정)
+			SeatService -->>- PaymentService : 변경된 좌석 정보 반환 
+			
+			PaymentService -->>- PaymentAPI : 결제 내역 반환
+			
+			PaymentAPI ->>+ QueueService: 대기열 토큰 예약 완료 처리
+			QueueService -->>- PaymentAPI : 대기열 토큰 예약 완료 처리 결과
+			PaymentAPI -->>- 사용자 : 결제 내역 반환
+		end
 	end
-
-	QueueService -->>- PaymentAPI: 검증 성공 
-	PaymentAPI ->>+ PaymentService: 결제 요청
-
-	PaymentService ->>+ ReservationService: 예약 조회
-	ReservationService -->>- PaymentService:예약 정보 반환
-	
-	opt 예약 정보 없음
-		PaymentService -->> PaymentAPI : 잘못된 요청 오류 응답
-		PaymentAPI -->> 사용자 : 잘못된 요청 오류 응답
-	end
-	
-	PaymentService ->>+ BalanceHistoryService : 잔액 내역 생성 (콘서트 가격만큼 사용)
-	BalanceHistoryService -->>- PaymentService : 잔액 내역 반환
-	PaymentService ->> PaymentService : 결제 처리 (결제 내역 생성)
-	PaymentService ->>+ReservationService : 예약 정보 변경 요청(예약 상태 : 예약 확정, 예약 만료 시각 : 제거)
-	ReservationService -->>-PaymentService : 변경된 예약 정보 반환
-
-	PaymentService ->>+ SeatService : 좌석 정보 변경 요청 (좌석 상태 : 예약 확정)
-	SeatService -->>- PaymentService : 변경된 좌석 정보 반환 
-	
-	PaymentService -->>- PaymentAPI : 결제 내역 반환
-	
-	PaymentAPI ->>+ QueueService: 대기열 토큰 만료 처리
-	QueueService -->>- PaymentAPI : 대기열 토큰 만료 처리 결과
-	PaymentAPI -->>- 사용자 : 결제 내역 반환
 ```
 
 
