@@ -78,12 +78,10 @@ public class UserServiceTest {
      **/
     UserBalanceRequest createUserBalanceRequest(long amount, UserBalanceType type){
         return UserBalanceRequest.builder()
-                .userId(userId)
                 .amount(amount)
                 .type(type)
                 .build();
     }
-
 
     /**
      * # Method설명 : userId에 해당하는 사용자 조회 성공
@@ -177,7 +175,7 @@ public class UserServiceTest {
         when(userBalanceRepository.save(any(UserBalance.class))).thenReturn(charged);
 
         // when
-        UserBalanceResponse userBalanceRes = userService.chargeBalance(chargedReq); // 충전
+        UserBalanceResponse userBalanceRes = userService.chargeBalance(userId, chargedReq); // 충전
 
         // then
         verify(userRepository, times(1)).findById(userId);
@@ -203,7 +201,7 @@ public class UserServiceTest {
         UserBalanceRequest chargedReq = createUserBalanceRequest(chargeAmount, UserBalanceType.CHARGE);
 
         // when & then
-        ApiException ex = catchThrowableOfType(() -> userService.chargeBalance(chargedReq), ApiException.class);
+        ApiException ex = catchThrowableOfType(() -> userService.chargeBalance(userId, chargedReq), ApiException.class);
 
         verify(userRepository, times(1)).findById(userId);
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND);
@@ -221,7 +219,7 @@ public class UserServiceTest {
         UserBalanceRequest chargedReq = createUserBalanceRequest(chargeAmountZero, UserBalanceType.CHARGE);
 
         // when & then
-        ApiException ex = catchThrowableOfType(() -> userService.chargeBalance(chargedReq), ApiException.class);
+        ApiException ex = catchThrowableOfType(() -> userService.chargeBalance(userId, chargedReq), ApiException.class);
         verify(userRepository, times(1)).findById(userId);
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
     }
@@ -244,7 +242,7 @@ public class UserServiceTest {
 
         // when
         UserBalanceRequest useRequest = createUserBalanceRequest(useAmount, UserBalanceType.USE);
-        UserBalanceResponse userBalance = userService.useBalance(useRequest);
+        UserBalanceResponse userBalance = userService.useBalance(userId, useRequest);
 
         // then
         verify(userRepository, times(1)).findById(userId);
@@ -274,7 +272,7 @@ public class UserServiceTest {
         when(userBalanceRepository.findTopByUser_UserIdOrderByCreatedAtDesc(userId)).thenReturn(Optional.of(charged));
 
         // when & then
-        ApiException ex = catchThrowableOfType(() -> userService.useBalance(useRequest), ApiException.class);
+        ApiException ex = catchThrowableOfType(() -> userService.useBalance(userId, useRequest), ApiException.class);
         verify(userRepository, times(1)).findById(userId);
         verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByCreatedAtDesc(userId);
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
@@ -292,7 +290,7 @@ public class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
 
         // when & then
-        ApiException ex = catchThrowableOfType(() -> userService.useBalance(useRequest), ApiException.class);
+        ApiException ex = catchThrowableOfType(() -> userService.useBalance(userId, useRequest), ApiException.class);
         verify(userRepository, times(1)).findById(userId);
         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
     }
