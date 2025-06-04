@@ -1,11 +1,10 @@
 package kr.hhplus.be.server.user.service;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-
-import jakarta.persistence.EntityNotFoundException;
+import kr.hhplus.be.server.common.exception.ApiException;
+import kr.hhplus.be.server.common.exception.ErrorCode;
 import kr.hhplus.be.server.user.domain.User;
 import kr.hhplus.be.server.user.domain.UserBalance;
 import kr.hhplus.be.server.user.domain.enums.UserBalanceType;
@@ -61,14 +60,14 @@ public class UserServiceTest {
      * # Method설명 : UserBalance 객체 생성
      * # MethodName : createUserBalance
      **/
-    private UserBalance createUserBalance(Long balanceHistoryId, long amount, UserBalanceType type, long currentBalance, String description) {
+    private UserBalance createUserBalance(Long balanceHistoryId, long amount, UserBalanceType type, long currentBalance) {
         return UserBalance.builder()
                 .balanceHistoryId(balanceHistoryId)
                 .user(userEntity)
                 .amount(amount)
                 .type(type)
                 .currentBalance(currentBalance)
-                .description(description)
+                .description(type == null ? null : amount + "원 " + type.getDescription())
                 .createdAt(LocalDateTime.now())
                 .build();
     }
@@ -77,12 +76,11 @@ public class UserServiceTest {
      * # Method설명 : UserBalanceRequest 객체 생성
      * # MethodName : createUserBalanceRequest
      **/
-    UserBalanceRequest createUserBalanceRequest(long amount, UserBalanceType type, String description){
+    UserBalanceRequest createUserBalanceRequest(long amount, UserBalanceType type){
         return UserBalanceRequest.builder()
                 .userId(userId)
                 .amount(amount)
                 .type(type)
-                .description(description)
                 .build();
     }
 
@@ -117,16 +115,18 @@ public class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         // when
-        assertThrows(EntityNotFoundException.class, () -> userService.getUser(userId));
+        ApiException ex = catchThrowableOfType(() -> userService.getUser(userId), ApiException.class);
 
         // then
         verify(userRepository, times(1)).findById(userId);
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND);
     }
 
     @Test
     void 사용자아이디로_잔액_조회_성공(){
         //given
-        UserBalance userBalance = createUserBalance(1L, chargeAmount, UserBalanceType.CHARGE, chargeAmount, chargeAmount + "원 충전");
+        when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
+        UserBalance userBalance = createUserBalance(1L, chargeAmount, UserBalanceType.CHARGE, chargeAmount);
         when(userBalanceRepository.findTopByUser_UserIdOrderByCreatedAtDesc(userId)).thenReturn(Optional.of(userBalance));
 
         // when
@@ -148,7 +148,7 @@ public class UserServiceTest {
     @Test
     void 사용자아이디로_잔액_조회_실패_0원_반환() {
         // given
-
+        when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
         when(userBalanceRepository.findTopByUser_UserIdOrderByCreatedAtDesc(userId)).thenReturn(Optional.empty());
 
         // when
@@ -168,9 +168,9 @@ public class UserServiceTest {
     @Test
     void 사용자아이디로_잔액_충전_성공() {
         // given
-        UserBalance userBalance = createUserBalance(1L, 0, null, 0, null);   // 기존 잔액
-        UserBalance charged = createUserBalance(2L, chargeAmount, UserBalanceType.CHARGE, chargeAmount, chargeAmount + "원 충전"); // 충전 잔액
-        UserBalanceRequest chargedReq = createUserBalanceRequest(chargeAmount, UserBalanceType.CHARGE, chargeAmount + "원 충전");
+        UserBalance userBalance = createUserBalance(null, 0, null, 0);   // 기존 잔액
+        UserBalance charged = createUserBalance(1L, chargeAmount, UserBalanceType.CHARGE, chargeAmount); // 충전 잔액
+        UserBalanceRequest chargedReq = createUserBalanceRequest(chargeAmount, UserBalanceType.CHARGE);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
         when(userBalanceRepository.findTopByUser_UserIdOrderByCreatedAtDesc(userId)).thenReturn(Optional.of(userBalance));
@@ -200,11 +200,13 @@ public class UserServiceTest {
         // given: 해당 userId가 없음
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        UserBalanceRequest chargedReq = createUserBalanceRequest(chargeAmount, UserBalanceType.CHARGE, chargeAmount + "원 충전");
+        UserBalanceRequest chargedReq = createUserBalanceRequest(chargeAmount, UserBalanceType.CHARGE);
 
         // when & then
-        assertThrows(EntityNotFoundException.class, () -> userService.chargeBalance(chargedReq));
+        ApiException ex = catchThrowableOfType(() -> userService.chargeBalance(chargedReq), ApiException.class);
+
         verify(userRepository, times(1)).findById(userId);
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND);
     }
 
     /**
@@ -216,10 +218,12 @@ public class UserServiceTest {
         // given
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
         long chargeAmountZero = 0L;
-        UserBalanceRequest userBalanceReq = createUserBalanceRequest(chargeAmountZero, UserBalanceType.CHARGE, chargeAmountZero + "원 충전");
+        UserBalanceRequest chargedReq = createUserBalanceRequest(chargeAmountZero, UserBalanceType.CHARGE);
 
         // when & then
-        assertThrows(IllegalArgumentException.class, () -> userService.chargeBalance(userBalanceReq));
+        ApiException ex = catchThrowableOfType(() -> userService.chargeBalance(chargedReq), ApiException.class);
+        verify(userRepository, times(1)).findById(userId);
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
     }
 
 
@@ -231,16 +235,15 @@ public class UserServiceTest {
     void 사용자아이디로_포인트_사용_성공() {
         // given
         long useAmount = 3000L; // 사용할 포인트
-        UserBalance charged = createUserBalance(1L, chargeAmount, UserBalanceType.CHARGE, chargeAmount, chargeAmount + "원 충전");
-        UserBalance afterUse = createUserBalance(2L, useAmount, UserBalanceType.USE, chargeAmount - useAmount, useAmount + "원 사용");
+        UserBalance charged = createUserBalance(1L, chargeAmount, UserBalanceType.CHARGE, chargeAmount);
+        UserBalance afterUse = createUserBalance(2L, useAmount, UserBalanceType.USE, chargeAmount - useAmount);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
-
         when(userBalanceRepository.findTopByUser_UserIdOrderByCreatedAtDesc(userId)).thenReturn(Optional.of(charged));  // 충전 된 상태의 기존 잔액
         when(userBalanceRepository.save(any(UserBalance.class))).thenReturn(afterUse);   // 사용 후 잔액
 
         // when
-        UserBalanceRequest useRequest = createUserBalanceRequest(useAmount, UserBalanceType.USE, useAmount + "원 사용");
+        UserBalanceRequest useRequest = createUserBalanceRequest(useAmount, UserBalanceType.USE);
         UserBalanceResponse userBalance = userService.useBalance(useRequest);
 
         // then
@@ -262,16 +265,19 @@ public class UserServiceTest {
     @Test
     void 사용자아이디로_포인트_사용_실패_잔액부족() {
         // given
-        UserBalance charged = createUserBalance(1L, chargeAmount, UserBalanceType.CHARGE, chargeAmount, chargeAmount + "원 충전");
+        UserBalance charged = createUserBalance(1L, chargeAmount, UserBalanceType.CHARGE, chargeAmount);
 
         long useAmount = 6000L; // 사용액 > 보유 잔액
-        UserBalanceRequest useRequest = createUserBalanceRequest(useAmount, UserBalanceType.USE, useAmount + "원 사용");
+        UserBalanceRequest useRequest = createUserBalanceRequest(useAmount, UserBalanceType.USE);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
         when(userBalanceRepository.findTopByUser_UserIdOrderByCreatedAtDesc(userId)).thenReturn(Optional.of(charged));
 
         // when & then
-        assertThrows(IllegalArgumentException.class, () -> userService.useBalance(useRequest));
+        ApiException ex = catchThrowableOfType(() -> userService.useBalance(useRequest), ApiException.class);
+        verify(userRepository, times(1)).findById(userId);
+        verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByCreatedAtDesc(userId);
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
     }
 
     /**
@@ -282,10 +288,12 @@ public class UserServiceTest {
     void 사용자아이디로_포인트_사용_실패_최소금액미만() {
         // given
         long useAmount = 0L;
-        UserBalanceRequest userBalanceReq = createUserBalanceRequest(useAmount, UserBalanceType.USE, useAmount + "원 사용");
+        UserBalanceRequest useRequest = createUserBalanceRequest(useAmount, UserBalanceType.USE);
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
 
         // when & then
-        assertThrows(IllegalArgumentException.class, () -> userService.useBalance(userBalanceReq));
+        ApiException ex = catchThrowableOfType(() -> userService.useBalance(useRequest), ApiException.class);
+        verify(userRepository, times(1)).findById(userId);
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
     }
 }
