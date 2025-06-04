@@ -19,15 +19,15 @@ public interface UserService {
     UserBalanceResponse getCurrentBalance(Long userId);
 
     /**
-     * # Method설명 : 사용자 잔액 충전 (요청 DTO: userId, amount, type, description)
+     * # Method설명 : 사용자 잔액 충전 (요청 DTO: userId, amount, type)
      * # MethodName : chargeBalance
      **/
-    UserBalanceResponse chargeBalance(UserBalanceRequest request);
+    UserBalanceResponse chargeBalance(Long userId, UserBalanceRequest request);
 
 
     /**
-     * # Method설명 : 사용자 잔액 사용 (요청 DTO: userId, amount, type, description)
+     * # Method설명 : 사용자 잔액 사용 (요청 DTO: userId, amount, type)
      * # MethodName : useBalance
      **/
-    UserBalanceResponse useBalance(UserBalanceRequest request);
+    UserBalanceResponse useBalance(Long userId, UserBalanceRequest request);
 }

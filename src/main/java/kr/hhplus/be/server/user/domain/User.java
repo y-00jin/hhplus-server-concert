@@ -1,6 +1,7 @@
 package kr.hhplus.be.server.user.domain;
 
 import jakarta.persistence.*;
+import kr.hhplus.be.server.user.dto.UserResponse;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -37,4 +38,12 @@ public class User {
     @Column(name = "updated_at", columnDefinition = "DATETIME", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
 
+
+    public UserResponse toResponse(){
+        return UserResponse.builder()
+                .userId(this.userId)
+                .email(this.email)
+                .userNm(this.userNm)
+                .build();
+    }
 }

@@ -8,9 +8,7 @@ import lombok.Getter;
 @Builder
 public class UserBalanceRequest{
 
-    private Long userId;
     private long amount;
     private UserBalanceType type;
-    private String description;
 
 }
