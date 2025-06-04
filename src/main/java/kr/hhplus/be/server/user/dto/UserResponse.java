@@ -1,8 +1,14 @@
 package kr.hhplus.be.server.user.dto;
 
+import lombok.Builder;
+import lombok.Getter;
 
-public record UserResponse(
-        Long userId,
-        String email,
-        String userNm
-) {}
+@Getter
+@Builder
+public class UserResponse{
+
+    private Long userId;
+    private String email;
+    private String userNm;
+
+}
