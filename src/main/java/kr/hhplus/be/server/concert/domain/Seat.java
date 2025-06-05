@@ -49,4 +49,8 @@ public class Seat {
                 .status(this.status)
                 .build();
     }
+
+    public void setStatus(SeatStatus status) {
+        this.status = status;
+    }
 }
