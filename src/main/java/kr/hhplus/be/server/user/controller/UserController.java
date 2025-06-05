@@ -20,7 +20,7 @@ public class UserController {
      * # MethodName : getUserBalance
      **/
     @GetMapping("/{userId}/balance")
-    public ResponseEntity<UserBalanceResponse> getUserBalance(@PathVariable Long userId) {
+    public ResponseEntity<UserBalanceResponse> getUserBalance(@PathVariable("userId") Long userId) {
         UserBalanceResponse response = userService.getCurrentBalance(userId);
         return ResponseEntity.ok(response);
     }
@@ -30,7 +30,7 @@ public class UserController {
      * # MethodName : chargeUserBalance
      **/
     @PostMapping("/{userId}/balance/charge")
-    public ResponseEntity<UserBalanceResponse> chargeUserBalance(@PathVariable Long userId, @RequestBody UserBalanceRequest request) {
+    public ResponseEntity<UserBalanceResponse> chargeUserBalance(@PathVariable("userId") Long userId, @RequestBody UserBalanceRequest request) {
         return ResponseEntity.ok(userService.chargeBalance(userId, request));
     }
 
@@ -39,7 +39,7 @@ public class UserController {
      * # MethodName : useUserBalance
      **/
     @PostMapping("/{userId}/balance/use")
-    public ResponseEntity<UserBalanceResponse> useUserBalance(@PathVariable Long userId, @RequestBody UserBalanceRequest request) {
+    public ResponseEntity<UserBalanceResponse> useUserBalance(@PathVariable("userId") Long userId, @RequestBody UserBalanceRequest request) {
         return ResponseEntity.ok(userService.useBalance(userId, request));
     }
 }
