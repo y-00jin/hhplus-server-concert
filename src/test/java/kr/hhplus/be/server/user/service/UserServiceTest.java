@@ -113,11 +113,12 @@ public class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         // when
-        ApiException ex = catchThrowableOfType(() -> userService.getUser(userId), ApiException.class);
-
+        assertThatThrownBy(() -> userService.getUser(userId))
+                .isInstanceOfSatisfying(ApiException.class, ex ->
+                        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND)
+                );
         // then
         verify(userRepository, times(1)).findById(userId);
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND);
     }
 
     @Test
@@ -201,10 +202,11 @@ public class UserServiceTest {
         UserBalanceRequest chargedReq = createUserBalanceRequest(chargeAmount, UserBalanceType.CHARGE);
 
         // when & then
-        ApiException ex = catchThrowableOfType(() -> userService.chargeBalance(userId, chargedReq), ApiException.class);
-
+        assertThatThrownBy(() -> userService.chargeBalance(userId, chargedReq))
+                .isInstanceOfSatisfying(ApiException.class, ex ->
+                        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND)
+                );
         verify(userRepository, times(1)).findById(userId);
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND);
     }
 
     /**
@@ -219,9 +221,12 @@ public class UserServiceTest {
         UserBalanceRequest chargedReq = createUserBalanceRequest(chargeAmountZero, UserBalanceType.CHARGE);
 
         // when & then
-        ApiException ex = catchThrowableOfType(() -> userService.chargeBalance(userId, chargedReq), ApiException.class);
+        assertThatThrownBy(() ->  userService.chargeBalance(userId, chargedReq))
+                .isInstanceOfSatisfying(ApiException.class, ex ->
+                        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE)
+                );
+
         verify(userRepository, times(1)).findById(userId);
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
     }
 
 
@@ -272,10 +277,12 @@ public class UserServiceTest {
         when(userBalanceRepository.findTopByUser_UserIdOrderByCreatedAtDesc(userId)).thenReturn(Optional.of(charged));
 
         // when & then
-        ApiException ex = catchThrowableOfType(() -> userService.useBalance(userId, useRequest), ApiException.class);
+        assertThatThrownBy(() -> userService.useBalance(userId, useRequest))
+                .isInstanceOfSatisfying(ApiException.class, ex ->
+                        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE)
+                );
         verify(userRepository, times(1)).findById(userId);
         verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByCreatedAtDesc(userId);
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
     }
 
     /**
@@ -290,8 +297,10 @@ public class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
 
         // when & then
-        ApiException ex = catchThrowableOfType(() -> userService.useBalance(userId, useRequest), ApiException.class);
+        assertThatThrownBy(() -> userService.useBalance(userId, useRequest))
+                .isInstanceOfSatisfying(ApiException.class, ex ->
+                        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE)
+                );
         verify(userRepository, times(1)).findById(userId);
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
     }
 }

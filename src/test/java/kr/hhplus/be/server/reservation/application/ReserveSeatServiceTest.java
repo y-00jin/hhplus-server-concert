@@ -1,6 +1,7 @@
 package kr.hhplus.be.server.reservation.application;
 
 import kr.hhplus.be.server.common.exception.ApiException;
+import kr.hhplus.be.server.common.exception.ErrorCode;
 import kr.hhplus.be.server.concert.domain.ConcertSchedule;
 import kr.hhplus.be.server.concert.domain.Seat;
 import kr.hhplus.be.server.concert.domain.enums.SeatStatus;
@@ -30,6 +31,13 @@ class ReserveSeatServiceTest {
 
     ReserveSeatService reserveSeatService;
 
+    final Long userId = 1L;
+    final Long notFoundUserId = 999L;
+    final LocalDate concertDate = LocalDate.of(2025, 6, 10);
+    final int seatNumber = 5;
+    final Long seatId = 100L;
+    final Long scheduleId = 10L;
+
     @BeforeEach
     void setUp() {
         reserveSeatService = new ReserveSeatService(
@@ -40,12 +48,9 @@ class ReserveSeatServiceTest {
     @Test
     void 좌석_정상_예약_성공() {
         // given
-        Long userId = 1L;
-        LocalDate concertDate = LocalDate.of(2025, 6, 10);
-        int seatNumber = 5;
         User user = User.builder().userId(userId).build();
-        ConcertSchedule schedule = ConcertSchedule.builder().scheduleId(10L).concertDate(concertDate).build();
-        Seat seat = Seat.builder().seatId(100L).seatNumber(seatNumber).status(SeatStatus.FREE).build();
+        ConcertSchedule schedule = ConcertSchedule.builder().scheduleId(scheduleId).concertDate(concertDate).build();
+        Seat seat = Seat.builder().seatId(seatId).seatNumber(seatNumber).status(SeatStatus.FREE).build();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(scheduleRepository.findByConcertDate(concertDate)).thenReturn(Optional.of(schedule));
@@ -68,39 +73,34 @@ class ReserveSeatServiceTest {
     @Test
     void 존재하지_않는_유저_예외() {
         // given
-        Long userId = 999L;
-        LocalDate date = LocalDate.now();
-        int seatNumber = 1;
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, date, seatNumber))
-                .isInstanceOf(ApiException.class);
+        assertThatThrownBy(() -> reserveSeatService.reserveSeat(notFoundUserId, concertDate, seatNumber))
+                .isInstanceOfSatisfying(ApiException.class, ex ->
+                        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND)
+                );
     }
 
     @Test
     void 콘서트_일정_없음_예외() {
         // given
-        Long userId = 1L;
-        LocalDate concertDate = LocalDate.of(2025, 6, 10);
-        int seatNumber = 1;
         User user = User.builder().userId(userId).build();
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(scheduleRepository.findByConcertDate(concertDate)).thenReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, concertDate, seatNumber))
-                .isInstanceOf(ApiException.class);
+                .isInstanceOfSatisfying(ApiException.class, ex ->
+                        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND)
+                );
     }
 
     @Test
     void 좌석_없음_예외() {
         // given
-        Long userId = 1L;
-        LocalDate concertDate = LocalDate.of(2025, 6, 10);
-        int seatNumber = 1;
         User user = User.builder().userId(userId).build();
-        ConcertSchedule schedule = ConcertSchedule.builder().scheduleId(11L).concertDate(concertDate).build();
+        ConcertSchedule schedule = ConcertSchedule.builder().scheduleId(scheduleId).concertDate(concertDate).build();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(scheduleRepository.findByConcertDate(concertDate)).thenReturn(Optional.of(schedule));
@@ -109,9 +109,8 @@ class ReserveSeatServiceTest {
 
         // when & then
         assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, concertDate, seatNumber))
-                .isInstanceOf(ApiException.class);
+                .isInstanceOfSatisfying(ApiException.class, ex ->
+                        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND)
+                );
     }
-
-
-
 }

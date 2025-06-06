@@ -19,10 +19,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowableOfType;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
-
 
 @ExtendWith(MockitoExtension.class)
 public class ConcertServiceTest {
@@ -96,10 +94,11 @@ public class ConcertServiceTest {
         when(scheduleRepository.findByConcertDate(date)).thenReturn(Optional.empty());
 
         // when & then
-        ApiException ex = catchThrowableOfType(() -> concertService.getAvailableSeatsByDate(date), ApiException.class);
+        assertThatThrownBy(() -> concertService.getAvailableSeatsByDate(date))
+                .isInstanceOfSatisfying(ApiException.class, ex ->
+                        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND)
+                );
 
-        // then
-        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND);
         verify(scheduleRepository, times(1)).findByConcertDate(date);
         verifyNoInteractions(seatRepository);
     }
