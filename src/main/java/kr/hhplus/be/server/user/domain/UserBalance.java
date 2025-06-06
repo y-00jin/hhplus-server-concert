@@ -38,7 +38,7 @@ public class UserBalance {
     @Column(name = "description", length = 255)
     private String description;
 
-    @Column(name = "created_at", columnDefinition = "DATETIME", updatable = false, insertable = false)
+    @Column(name = "created_at", columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP", updatable = false, insertable = false)
     private LocalDateTime createdAt;
 
 

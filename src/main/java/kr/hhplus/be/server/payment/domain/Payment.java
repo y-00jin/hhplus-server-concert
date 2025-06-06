@@ -1,7 +1,10 @@
-package kr.hhplus.be.server.reservation.domain;
+package kr.hhplus.be.server.payment.domain;
 
 import jakarta.persistence.*;
 import kr.hhplus.be.server.concert.domain.Seat;
+import kr.hhplus.be.server.payment.domain.enums.PaymentStatus;
+import kr.hhplus.be.server.payment.dto.PaymentResponse;
+import kr.hhplus.be.server.reservation.domain.SeatReservation;
 import kr.hhplus.be.server.reservation.domain.enums.ReservationStatus;
 import kr.hhplus.be.server.reservation.dto.SeatReservationResponse;
 import kr.hhplus.be.server.user.domain.User;
@@ -10,32 +13,32 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "seat_reservations")
+@Table(name = "payments")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class SeatReservation {
+public class Payment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "reservation_id")
-    private Long reservationId;
+    @Column(name = "payment_id")
+    private Long paymentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "seat_id", nullable = false)
-    private Seat seat;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reservation_id", nullable = false, unique = true)
+    private SeatReservation seatReservation;
+
+    @Column(name = "amount", nullable = false)
+    private long amount;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private ReservationStatus status;
-
-    @Column(name = "expired_at", columnDefinition = "DATETIME")
-    private LocalDateTime expiredAt;
+    private PaymentStatus status;
 
     @Column(name = "created_at", columnDefinition = "DATETIME", updatable = false, insertable = false)
     private LocalDateTime createdAt;
@@ -43,20 +46,14 @@ public class SeatReservation {
     @Column(name = "updated_at", columnDefinition = "DATETIME", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
 
-
-    public SeatReservationResponse toResponse(){
-        return SeatReservationResponse.builder()
-                .reservationId(this.reservationId)
+    public PaymentResponse toResponse(){
+        return PaymentResponse.builder()
+                .paymentId(this.paymentId)
                 .userId(this.user.getUserId())
-                .seatId(this.seat.getSeatId())
+                .reservationId(this.seatReservation.getReservationId())
+                .amount(this.amount)
                 .status(this.status)
-                .expiredAt(this.expiredAt)
                 .build();
     }
 
-    public void confirmReservation(){
-        this.status = ReservationStatus.CONFIRMED;
-        this.expiredAt = null;
-        this.updatedAt = LocalDateTime.now();
-    }
 }
