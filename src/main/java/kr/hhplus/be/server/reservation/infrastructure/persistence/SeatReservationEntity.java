@@ -1,9 +1,8 @@
-package kr.hhplus.be.server.reservation.domain;
+package kr.hhplus.be.server.reservation.infrastructure.persistence;
 
 import jakarta.persistence.*;
 import kr.hhplus.be.server.concert.domain.Seat;
 import kr.hhplus.be.server.reservation.domain.enums.ReservationStatus;
-import kr.hhplus.be.server.reservation.dto.SeatReservationResponse;
 import kr.hhplus.be.server.user.domain.User;
 import lombok.*;
 
@@ -15,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class SeatReservation {
+public class SeatReservationEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,29 +33,12 @@ public class SeatReservation {
     @Column(name = "status", nullable = false)
     private ReservationStatus status;
 
-    @Column(name = "expired_at", columnDefinition = "DATETIME")
+    @Column(name = "expired_at")
     private LocalDateTime expiredAt;
 
-    @Column(name = "created_at", columnDefinition = "DATETIME", updatable = false, insertable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", columnDefinition = "DATETIME", insertable = false, updatable = false)
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-
-    public SeatReservationResponse toResponse(){
-        return SeatReservationResponse.builder()
-                .reservationId(this.reservationId)
-                .userId(this.user.getUserId())
-                .seatId(this.seat.getSeatId())
-                .status(this.status)
-                .expiredAt(this.expiredAt)
-                .build();
-    }
-
-    public void confirmReservation(){
-        this.status = ReservationStatus.CONFIRMED;
-        this.expiredAt = null;
-        this.updatedAt = LocalDateTime.now();
-    }
 }

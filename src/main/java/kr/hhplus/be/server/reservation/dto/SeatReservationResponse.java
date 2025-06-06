@@ -1,6 +1,5 @@
 package kr.hhplus.be.server.reservation.dto;
 
-import kr.hhplus.be.server.reservation.domain.enums.ReservationStatus;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -12,6 +11,6 @@ public class SeatReservationResponse {
     private Long reservationId;
     private Long userId;
     private Long seatId;
-    private ReservationStatus status;
+    private String status;
     private LocalDateTime expiredAt;
 }
