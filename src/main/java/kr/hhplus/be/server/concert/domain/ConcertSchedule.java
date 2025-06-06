@@ -25,10 +25,10 @@ public class ConcertSchedule {
     @Column(name = "concert_date", nullable = false)
     private LocalDate concertDate;
 
-    @Column(name = "created_at", columnDefinition = "DATETIME", updatable = false, insertable = false)
+    @Column(name = "created_at", columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP", updatable = false, insertable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", columnDefinition = "DATETIME", insertable = false, updatable = false)
+    @Column(name = "updated_at", columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
 
     public ConcertScheduleResponse toResponse(){

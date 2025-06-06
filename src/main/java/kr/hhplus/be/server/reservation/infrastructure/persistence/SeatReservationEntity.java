@@ -36,9 +36,9 @@ public class SeatReservationEntity {
     @Column(name = "expired_at")
     private LocalDateTime expiredAt;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP", updatable = false, insertable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
 }

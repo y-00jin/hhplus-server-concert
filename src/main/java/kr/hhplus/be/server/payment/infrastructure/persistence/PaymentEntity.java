@@ -37,10 +37,10 @@ public class PaymentEntity {
     @Column(name = "status", nullable = false)
     private PaymentStatus status;
 
-    @Column(name = "created_at", columnDefinition = "DATETIME", updatable = false, insertable = false)
+    @Column(name = "created_at", columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP", updatable = false, insertable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", columnDefinition = "DATETIME", insertable = false, updatable = false)
+    @Column(name = "updated_at", columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
 
 }
