@@ -1,37 +1,46 @@
-package kr.hhplus.be.server.payment.service;
+package kr.hhplus.be.server.payment.application;
+
 
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
+import kr.hhplus.be.server.concert.domain.Seat;
 import kr.hhplus.be.server.concert.domain.enums.SeatStatus;
-import kr.hhplus.be.server.payment.domain.Payment;
+import kr.hhplus.be.server.concert.repository.SeatRepository;
 import kr.hhplus.be.server.payment.domain.enums.PaymentStatus;
-import kr.hhplus.be.server.payment.dto.PaymentResponse;
-import kr.hhplus.be.server.payment.repository.PaymentRepository;
-import kr.hhplus.be.server.reservation.domain.SeatReservation;
+import kr.hhplus.be.server.payment.domain.model.Payment;
+import kr.hhplus.be.server.payment.domain.repository.PaymentRepository;
 import kr.hhplus.be.server.reservation.domain.enums.ReservationStatus;
-import kr.hhplus.be.server.reservation.repository.SeatReservationRepository;
+import kr.hhplus.be.server.reservation.domain.model.SeatReservation;
+import kr.hhplus.be.server.reservation.domain.repository.SeatReservationRepository;
 import kr.hhplus.be.server.user.domain.User;
 import kr.hhplus.be.server.user.domain.UserBalance;
 import kr.hhplus.be.server.user.domain.enums.UserBalanceType;
 import kr.hhplus.be.server.user.repository.UserBalanceRepository;
 import kr.hhplus.be.server.user.repository.UserRepository;
-import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-
-@AllArgsConstructor
 @Service
-public class PaymentServiceImpl implements PaymentService {
+public class PaymentService {   // 좌석 예약 서비스
 
+    private final PaymentRepository paymentRepository;
     private final SeatReservationRepository seatReservationRepository;
     private final UserRepository userRepository;
     private final UserBalanceRepository userBalanceRepository;
-    private final PaymentRepository paymentRepository;
+    private final SeatRepository seatRepository;
 
-    @Override
-    public PaymentResponse payment(Long userId, Long reservationId) {
+    public PaymentService(PaymentRepository paymentRepository, SeatReservationRepository seatReservationRepository, UserRepository userRepository, UserBalanceRepository userBalanceRepository, SeatRepository seatRepository) {
+        this.paymentRepository = paymentRepository;
+        this.seatReservationRepository = seatReservationRepository;
+        this.userRepository = userRepository;
+        this.userBalanceRepository = userBalanceRepository;
+        this.seatRepository = seatRepository;
+    }
+
+    @Transactional
+    public Payment payment(Long userId, Long reservationId) {
 
         // 예약ID 검증
         SeatReservation seatReservation = seatReservationRepository.findById(reservationId)
@@ -51,13 +60,16 @@ public class PaymentServiceImpl implements PaymentService {
                 .map(UserBalance::getCurrentBalance)
                 .orElse(0L);
 
-        long price = seatReservation.getSeat().getPrice();  // 콘서트 가격
+        // 콘서트 좌석 조회 (예약 내역의 좌석id로)
+        Seat seat = seatRepository.findById(seatReservation.getSeatId())
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "좌석 정보를 찾을 수 없습니다."));
+        long price = seat.getPrice();   // 콘서트 가격
 
         // 잔액 부족
         if(currentBalance < price)
             throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "잔액이 부족합니다.");
 
-        // 사용자 잔액 내역
+        // 사용자 잔액 내역 생성
         UserBalance userBalance = UserBalance.builder()
                 .user(user)
                 .amount(price)
@@ -66,25 +78,27 @@ public class PaymentServiceImpl implements PaymentService {
                 .description(price +"원 " + UserBalanceType.USE.getDescription())
                 .createdAt(LocalDateTime.now())
                 .build();
-        userBalanceRepository.save(userBalance);    // 잔액 내역 생성
+        userBalanceRepository.save(userBalance);
 
+        // 결제 도메인 모델 생성 (POJO)
+        Payment payment = Payment.create(
+                user.getUserId(),
+                seatReservation.getReservationId(),
+                price,
+                PaymentStatus.SUCCESS
+        );
+        Payment result = paymentRepository.save(payment);
 
-        // 결제 내역 생성
-        Payment payment = Payment.builder()
-                .user(user)
-                .seatReservation(seatReservation)
-                .amount(price)
-                .status(PaymentStatus.SUCCESS)
-                .createdAt(LocalDateTime.now())
-                .build();
-        paymentRepository.save(payment);
-
-        // 예약 정보 (상태, 만료 시간) 변경
+        // 예약 내역 - 예약 확정 변경
         seatReservation.confirmReservation();
+        seatReservationRepository.save(seatReservation);
 
-        // 좌석 정보 (상태) 변경
-        seatReservation.getSeat().setStatus(SeatStatus.CONFIRMED);
+        // 좌석 - 예약 확정 변경
+        seat.setStatus(SeatStatus.CONFIRMED);
+        seatRepository.save(seat);
 
-        return payment.toResponse();
+        return result;
     }
+
+
 }

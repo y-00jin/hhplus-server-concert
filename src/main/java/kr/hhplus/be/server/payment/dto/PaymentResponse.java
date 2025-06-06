@@ -1,8 +1,9 @@
 package kr.hhplus.be.server.payment.dto;
 
-import kr.hhplus.be.server.payment.domain.enums.PaymentStatus;
 import lombok.Builder;
 import lombok.Getter;
+
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -11,5 +12,6 @@ public class PaymentResponse {
     private Long userId;
     private Long reservationId;
     private long amount;
-    private PaymentStatus status;
+    private String status;
+    private LocalDateTime createdAt;
 }
