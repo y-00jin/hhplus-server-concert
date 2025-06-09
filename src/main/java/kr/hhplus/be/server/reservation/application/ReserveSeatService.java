@@ -8,7 +8,6 @@ import kr.hhplus.be.server.concert.domain.Seat;
 import kr.hhplus.be.server.concert.domain.enums.SeatStatus;
 import kr.hhplus.be.server.concert.repository.ConcertScheduleRepository;
 import kr.hhplus.be.server.concert.repository.SeatRepository;
-import kr.hhplus.be.server.reservation.domain.enums.ReservationStatus;
 import kr.hhplus.be.server.reservation.domain.model.SeatReservation;
 import kr.hhplus.be.server.reservation.domain.repository.SeatReservationRepository;
 import kr.hhplus.be.server.user.domain.User;
@@ -18,8 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 @Service
 public class ReserveSeatService {   // 좌석 예약 서비스
@@ -46,15 +45,10 @@ public class ReserveSeatService {   // 좌석 예약 서비스
                 .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "선택한 좌석은 존재하지 않거나 이미 예약된 좌석입니다."));
 
         // 좌석 상태 임시예약으로 변경
-        seat.setStatus(SeatStatus.TEMP_RESERVED);
+        seat.reserveTemporarily();
 
-        // 예약 객체 생성 (id만 넘김)
-        SeatReservation reservation = SeatReservation.create(
-                user.getUserId(),
-                seat.getSeatId(),
-                ReservationStatus.TEMP_RESERVED,
-                LocalDateTime.now().plusMinutes(5)
-        );
+        // 임시 예약 객체 생성
+        SeatReservation reservation = SeatReservation.createTemporary(user.getUserId(), seat.getSeatId());
         return reservationRepository.save(reservation);
     }
 

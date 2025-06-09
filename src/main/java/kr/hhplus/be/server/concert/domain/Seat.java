@@ -1,6 +1,8 @@
 package kr.hhplus.be.server.concert.domain;
 
 import jakarta.persistence.*;
+import kr.hhplus.be.server.common.exception.ApiException;
+import kr.hhplus.be.server.common.exception.ErrorCode;
 import kr.hhplus.be.server.concert.domain.enums.SeatStatus;
 import kr.hhplus.be.server.concert.dto.SeatResponse;
 import lombok.*;
@@ -50,7 +52,23 @@ public class Seat {
                 .build();
     }
 
+    /**
+     * # Method설명 : 상태값 변경
+     * # MethodName : setStatus
+     **/
     public void setStatus(SeatStatus status) {
         this.status = status;
     }
+
+    /**
+     * # Method설명 : 임시 예약
+     * # MethodName : reserveTemporarily
+     **/
+    public void reserveTemporarily() {
+        if (this.status != SeatStatus.FREE)
+            throw new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "선택한 좌석은 이미 예약된 좌석입니다.");
+
+        this.status = SeatStatus.TEMP_RESERVED;
+    }
+
 }

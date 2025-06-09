@@ -24,12 +24,6 @@ public class SeatReservation {
         this.updatedAt = updatedAt;
     }
 
-
-    public static SeatReservation create(Long userId, Long seatId, ReservationStatus status, LocalDateTime expiredAt) {
-        LocalDateTime now = LocalDateTime.now();
-        return new SeatReservation(null, userId, seatId, status, expiredAt, now, now);
-    }
-
     public Long getReservationId() { return reservationId; }
     public Long getUserId() { return userId; }
     public Long getSeatId() { return seatId; }
@@ -37,9 +31,27 @@ public class SeatReservation {
     public LocalDateTime getExpiredAt() { return expiredAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
-
     public void assignId(Long reservationId) { this.reservationId = reservationId; }
 
+
+    public static SeatReservation create(Long userId, Long seatId, ReservationStatus status, LocalDateTime expiredAt) {
+        LocalDateTime now = LocalDateTime.now();
+        return new SeatReservation(null, userId, seatId, status, expiredAt, now, now);
+    }
+
+    /**
+     * # Method설명 : 임시 예약 생성
+     * # MethodName : createTemporary
+     **/
+    public static SeatReservation createTemporary(Long userId, Long seatId) {
+        LocalDateTime now = LocalDateTime.now();
+        return new SeatReservation(null, userId, seatId, ReservationStatus.TEMP_RESERVED, now.plusMinutes(5), now, now);
+    }
+
+    /**
+     * # Method설명 : 예약 확정 변경
+     * # MethodName : confirmReservation
+     **/
     public void confirmReservation(){
         this.status = ReservationStatus.CONFIRMED;
         this.expiredAt = null;

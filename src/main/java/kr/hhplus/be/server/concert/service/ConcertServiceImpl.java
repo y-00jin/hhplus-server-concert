@@ -11,10 +11,12 @@ import kr.hhplus.be.server.concert.repository.ConcertScheduleRepository;
 import kr.hhplus.be.server.concert.repository.SeatRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
 
+@Transactional(readOnly = true)
 @AllArgsConstructor
 @Service
 public class ConcertServiceImpl implements ConcertService {
