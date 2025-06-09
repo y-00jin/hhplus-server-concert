@@ -45,7 +45,7 @@ public class UserServiceImpl implements UserService{
                 .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "해당 ID의 사용자를 찾을 수 없습니다"));
 
         // 잔액 조회
-        return userBalanceRepository.findTopByUser_UserIdOrderByCreatedAtDesc(userId)
+        return userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)
                 .map(UserBalance::toResponse)
                 .orElse(UserBalanceResponse.builder()
                         .balanceHistoryId(null)
@@ -72,7 +72,7 @@ public class UserServiceImpl implements UserService{
 
         // 현재 잔액 조회 (없으면 0)
         long currentBalance = userBalanceRepository
-                .findTopByUser_UserIdOrderByCreatedAtDesc(userId)
+                .findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)
                 .map(UserBalance::getCurrentBalance)
                 .orElse(0L);
 
@@ -103,7 +103,7 @@ public class UserServiceImpl implements UserService{
 
         // 현재 잔액 조회 (없으면 0)
         long currentBalance = userBalanceRepository
-                .findTopByUser_UserIdOrderByCreatedAtDesc(userId)
+                .findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)
                 .map(UserBalance::getCurrentBalance)
                 .orElse(0L);
 

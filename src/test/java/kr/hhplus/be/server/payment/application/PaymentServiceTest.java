@@ -68,7 +68,7 @@ public class PaymentServiceTest {
 
         when(seatReservationRepository.findById(reservationId)).thenReturn(Optional.of(seatReservation));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(userBalanceRepository.findTopByUser_UserIdOrderByCreatedAtDesc(userId)).thenReturn(Optional.of(
+        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)).thenReturn(Optional.of(
                 UserBalance.builder().currentBalance(currentBalance).build()
         ));
         when(seatRepository.findById(seatId)).thenReturn(Optional.of(seat));
@@ -110,7 +110,7 @@ public class PaymentServiceTest {
 
         when(seatReservationRepository.findById(reservationId)).thenReturn(Optional.of(seatReservation));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(userBalanceRepository.findTopByUser_UserIdOrderByCreatedAtDesc(userId)).thenReturn(Optional.of(UserBalance.builder().currentBalance(currentBalance).build()));
+        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)).thenReturn(Optional.of(UserBalance.builder().currentBalance(currentBalance).build()));
         when(seatRepository.findById(seatId)).thenReturn(Optional.of(seat));
 
         // when & then

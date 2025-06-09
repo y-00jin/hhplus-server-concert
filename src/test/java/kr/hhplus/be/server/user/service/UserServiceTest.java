@@ -126,13 +126,13 @@ public class UserServiceTest {
         //given
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
         UserBalance userBalance = createUserBalance(1L, chargeAmount, UserBalanceType.CHARGE, chargeAmount);
-        when(userBalanceRepository.findTopByUser_UserIdOrderByCreatedAtDesc(userId)).thenReturn(Optional.of(userBalance));
+        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)).thenReturn(Optional.of(userBalance));
 
         // when
         UserBalanceResponse userBalanceRes = userService.getCurrentBalance(userId);
 
         // then
-        verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByCreatedAtDesc(userId);
+        verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId);
 
         assertThat(userBalanceRes).isNotNull();
         assertThat(userBalanceRes.getBalanceHistoryId()).isEqualTo(userBalance.getBalanceHistoryId());
@@ -148,13 +148,13 @@ public class UserServiceTest {
     void 사용자아이디로_잔액_조회_실패_0원_반환() {
         // given
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
-        when(userBalanceRepository.findTopByUser_UserIdOrderByCreatedAtDesc(userId)).thenReturn(Optional.empty());
+        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)).thenReturn(Optional.empty());
 
         // when
         UserBalanceResponse userBalanceRes = userService.getCurrentBalance(userId);
 
         // then
-        verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByCreatedAtDesc(userId);
+        verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId);
 
         assertThat(userBalanceRes).isNotNull();
         assertThat(userBalanceRes.getCurrentBalance()).isEqualTo(0L);
@@ -172,7 +172,7 @@ public class UserServiceTest {
         UserBalanceRequest chargedReq = createUserBalanceRequest(chargeAmount, UserBalanceType.CHARGE);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
-        when(userBalanceRepository.findTopByUser_UserIdOrderByCreatedAtDesc(userId)).thenReturn(Optional.of(userBalance));
+        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)).thenReturn(Optional.of(userBalance));
         when(userBalanceRepository.save(any(UserBalance.class))).thenReturn(charged);
 
         // when
@@ -180,7 +180,7 @@ public class UserServiceTest {
 
         // then
         verify(userRepository, times(1)).findById(userId);
-        verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByCreatedAtDesc(userId);
+        verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId);
         verify(userBalanceRepository, times(1)).save(any(UserBalance.class));
 
         assertThat(userBalanceRes).isNotNull();
@@ -242,7 +242,7 @@ public class UserServiceTest {
         UserBalance afterUse = createUserBalance(2L, useAmount, UserBalanceType.USE, chargeAmount - useAmount);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
-        when(userBalanceRepository.findTopByUser_UserIdOrderByCreatedAtDesc(userId)).thenReturn(Optional.of(charged));  // 충전 된 상태의 기존 잔액
+        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)).thenReturn(Optional.of(charged));  // 충전 된 상태의 기존 잔액
         when(userBalanceRepository.save(any(UserBalance.class))).thenReturn(afterUse);   // 사용 후 잔액
 
         // when
@@ -251,7 +251,7 @@ public class UserServiceTest {
 
         // then
         verify(userRepository, times(1)).findById(userId);
-        verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByCreatedAtDesc(userId);
+        verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId);
         verify(userBalanceRepository, times(1)).save(any(UserBalance.class));
 
         assertThat(userBalance).isNotNull();
@@ -274,7 +274,7 @@ public class UserServiceTest {
         UserBalanceRequest useRequest = createUserBalanceRequest(useAmount, UserBalanceType.USE);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
-        when(userBalanceRepository.findTopByUser_UserIdOrderByCreatedAtDesc(userId)).thenReturn(Optional.of(charged));
+        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)).thenReturn(Optional.of(charged));
 
         // when & then
         assertThatThrownBy(() -> userService.useBalance(userId, useRequest))
@@ -282,7 +282,7 @@ public class UserServiceTest {
                         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE)
                 );
         verify(userRepository, times(1)).findById(userId);
-        verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByCreatedAtDesc(userId);
+        verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId);
     }
 
     /**

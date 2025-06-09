@@ -55,7 +55,7 @@ public class PaymentService {   // 좌석 예약 서비스
 
         // 사용자 현재 잔액 조회
         long currentBalance = userBalanceRepository
-                .findTopByUser_UserIdOrderByCreatedAtDesc(userId)
+                .findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)
                 .map(UserBalance::getCurrentBalance)
                 .orElse(0L);
 

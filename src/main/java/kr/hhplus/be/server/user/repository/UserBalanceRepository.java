@@ -9,8 +9,8 @@ public interface UserBalanceRepository extends JpaRepository<UserBalance, Long> 
 
     /**
      * # Method설명 : userId로 최근 잔액내역 1권 조회
-     * # MethodName : findTopByUser_UserIdOrderByCreatedAtDesc
+     * # MethodName : findTopByUser_UserIdOrderByBalanceHistoryIdDesc
      **/
-    Optional<UserBalance> findTopByUser_UserIdOrderByCreatedAtDesc(Long userId);
+    Optional<UserBalance> findTopByUser_UserIdOrderByBalanceHistoryIdDesc(Long userId);
 
 }
