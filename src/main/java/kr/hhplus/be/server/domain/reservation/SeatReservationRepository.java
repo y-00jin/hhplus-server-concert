@@ -1,0 +1,9 @@
+package kr.hhplus.be.server.domain.reservation;
+
+import java.util.Optional;
+
+public interface SeatReservationRepository {
+    SeatReservation save(SeatReservation seatReservation);
+    Optional<SeatReservation> findById(Long reservationId);
+    Optional<SeatReservation> findByReservationIdAndUser_UserId(Long reservationId, Long userId);
+}
