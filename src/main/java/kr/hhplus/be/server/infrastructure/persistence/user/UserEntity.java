@@ -21,8 +21,8 @@ public class UserEntity {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "uuid", columnDefinition = "BINARY(16)", unique = true, nullable = false)
-    private byte[] uuid;
+    @Column(name = "uuid", length = 36, unique = true, nullable = false)
+    private String uuid;
 
     @Column(name = "email", length = 100, unique = true, nullable = false)
     private String email;

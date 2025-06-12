@@ -5,14 +5,14 @@ import java.time.LocalDateTime;
 public class User {
 
     private Long userId;
-    private byte[] uuid;
+    private String uuid;
     private String email;
     private String password;
     private String userNm;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public User(Long userId, byte[] uuid, String email, String password, String userNm, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public User(Long userId, String uuid, String email, String password, String userNm, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.userId = userId;
         this.uuid = uuid;
         this.email = email;
@@ -22,7 +22,7 @@ public class User {
         this.updatedAt = updatedAt;
     }
 
-    public static User create(byte[] uuid, String email, String password, String userNm) {
+    public static User create(String uuid, String email, String password, String userNm) {
         LocalDateTime now = LocalDateTime.now();
         return new User(null, uuid, email, password,userNm,now,now);
     }
@@ -32,7 +32,7 @@ public class User {
         return userId;
     }
 
-    public byte[] getUuid() {
+    public String getUuid() {
         return uuid;
     }
 
