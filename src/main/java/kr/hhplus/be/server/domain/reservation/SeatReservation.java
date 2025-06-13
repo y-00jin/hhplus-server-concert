@@ -41,9 +41,9 @@ public class  SeatReservation {
      * # Method설명 : 임시 예약 생성
      * # MethodName : createTemporary
      **/
-    public static SeatReservation createTemporary(Long userId, Long seatId) {
+    public static SeatReservation createTemporary(Long userId, Long seatId, int timeoutMinutes) {
         LocalDateTime now = LocalDateTime.now();
-        return create(userId, seatId, ReservationStatus.TEMP_RESERVED, now.plusMinutes(5));
+        return create(userId, seatId, ReservationStatus.TEMP_RESERVED, now.plusMinutes(timeoutMinutes));
     }
 
     /**

@@ -12,4 +12,9 @@ public interface ConcertScheduleRepository {
     // 특정 날짜로 콘서트 일정 조회
     Optional<ConcertSchedule> findByConcertDate(LocalDate concertDate);
 
+    // 일정ID로 콘서트 일정 조회
+    Optional<ConcertSchedule> findById(Long scheduleId);
+
+    boolean existsById(Long scheduleId);
+
 }

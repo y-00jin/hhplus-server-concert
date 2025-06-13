@@ -14,4 +14,6 @@ public interface SpringDataSeatJpaRepository extends JpaRepository<SeatEntity, L
     // 일정ID, 좌석번호, 상태로 조회
     Optional<SeatEntity> findByConcertSchedule_ScheduleIdAndSeatNumberAndStatus(Long scheduleId, int seatNumber, SeatStatus status);
 
+    Optional<SeatEntity> findByConcertSchedule_ScheduleIdAndSeatNumber(Long scheduleId, int seatNumber);
+
 }

@@ -11,6 +11,8 @@ public interface SeatRepository {
     // 일정ID, 좌석번호, 상태로 조회
     Optional<Seat> findByConcertSchedule_ScheduleIdAndSeatNumberAndStatus(Long scheduleId, int seatNumber, SeatStatus status);
 
+    Optional<Seat> findByConcertSchedule_ScheduleIdAndSeatNumber(Long scheduleId, int seatNumber);
+
     Seat save(Seat payment);
 
     Optional<Seat> findById(Long seatId);

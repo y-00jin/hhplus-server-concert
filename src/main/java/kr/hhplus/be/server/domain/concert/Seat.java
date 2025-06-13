@@ -79,5 +79,43 @@ public class Seat {
             throw new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "선택한 좌석은 이미 예약된 좌석입니다.");
 
         this.status = SeatStatus.TEMP_RESERVED;
+        this.updatedAt = LocalDateTime.now();  // 임시예약 시각 기록
+    }
+
+    /**
+     * # Method설명 : 임시예약 만료여부 판단 (updatedAt + timeout)
+     * # MethodName : isExpired
+     **/
+    public boolean isExpired(int timeoutMinutes) {
+        return status == SeatStatus.TEMP_RESERVED
+                && updatedAt != null
+                && updatedAt.plusMinutes(timeoutMinutes).isBefore(LocalDateTime.now());
+    }
+
+    /**
+     * # Method설명 : 예약 가능 여부 (FREE 또는 만료된 임시예약)
+     * # MethodName : isAvailable
+     **/
+    public boolean isAvailable(int timeoutMinutes) {
+        return status == SeatStatus.FREE
+                || (status == SeatStatus.TEMP_RESERVED && isExpired(timeoutMinutes));
+    }
+
+    /**
+     * # Method설명 : 임시예약 해제 (만료되었을 때 사용)
+     * # MethodName : releaseAssignment
+     **/
+    public void releaseAssignment() {
+        this.status = SeatStatus.FREE;
+        this.updatedAt = LocalDateTime.now(); // 해제시각 갱신
+    }
+
+    /**
+     * # Method설명 : 예약 확정 처리
+     * # MethodName : confirmReservation
+     **/
+    public void confirmReservation() {
+        this.status = SeatStatus.CONFIRMED;
+        this.updatedAt = LocalDateTime.now();
     }
 }
