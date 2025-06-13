@@ -6,17 +6,15 @@ public class QueueToken {
     private String token;            // 대기열 토큰 (랜덤 문자열, UUID 등)
     private Long userId;             // 사용자 PK (user_id)
     private Long scheduleId;         // 콘서트 일정 PK
-    private Long seatId;             // 좌석 PK
     private Integer queuePosition;   // 대기열 순서
     private QueueStatus status;      // 상태
     private LocalDateTime issuedAt;  // 토큰 발급 시각
     private LocalDateTime expiresAt; // 토큰 만료 시각
 
-    public QueueToken(String token, Long userId, Long scheduleId, Long seatId, Integer queuePosition, QueueStatus status, LocalDateTime issuedAt, LocalDateTime expiresAt) {
+    public QueueToken(String token, Long userId, Long scheduleId, Integer queuePosition, QueueStatus status, LocalDateTime issuedAt, LocalDateTime expiresAt) {
         this.token = token;
         this.userId = userId;
         this.scheduleId = scheduleId;
-        this.seatId = seatId;
         this.queuePosition = queuePosition;
         this.status = status;
         this.issuedAt = issuedAt;
@@ -27,14 +25,13 @@ public class QueueToken {
      * # Method설명 : 활성(대기열 통과) 토큰 생성
      * # MethodName : activeToken
      **/
-    public static QueueToken activeToken(String token, Long userId, Long scheduleId, Long seatId, long expiresInMinutes) {
+    public static QueueToken activeToken(String token, Long userId, Long scheduleId, long expiresInMinutes) {
         LocalDateTime now = LocalDateTime.now();
         return new QueueToken(
                 token,
                 userId,
                 scheduleId,
-                seatId,
-                null,
+                0,
                 QueueStatus.ACTIVE,
                 now,
                 now.plusMinutes(expiresInMinutes)
@@ -42,20 +39,35 @@ public class QueueToken {
     }
 
     /**
-     * # Method설명 : 대기열(기다림) 상태 토큰 생성
+     * # Method설명 : 대기열 상태 토큰 생성
      * # MethodName : waitingToken
      **/
-    public static QueueToken waitingToken(String token, Long userId, Long scheduleId, Long seatId, int waitingPosition) {
+    public static QueueToken waitingToken(String token, Long userId, Long scheduleId, int waitingPosition) {
         LocalDateTime now = LocalDateTime.now();
         return new QueueToken(
                 token,
                 userId,
                 scheduleId,
-                seatId,
-                waitingPosition,
+                waitingPosition + 1,
                 QueueStatus.WAITING,
                 now,
                 null
+        );
+    }
+
+    /**
+     * # Method설명 : 대기 순번만 변경한 새로운 대기열 토큰 객체 반환
+     * # MethodName : withWaitingPosition
+     **/
+    public QueueToken withWaitingPosition(int waitingPosition) {
+        return new QueueToken(
+                this.token,         // 기존 토큰ID
+                this.userId,        // 기존 사용자 ID
+                this.scheduleId,    // 기존 콘서트 일정 ID
+                waitingPosition,    // 새로운 대기 순번
+                this.status,        // 기존 상태
+                this.issuedAt,      // 기존 발급시각
+                this.expiresAt      // 기존 만료시각
         );
     }
 
@@ -79,7 +91,6 @@ public class QueueToken {
     public String getToken() { return token; }
     public Long getUserId() { return userId; }
     public Long getScheduleId() { return scheduleId; }
-    public Long getSeatId() { return seatId; }
     public Integer getQueuePosition() { return queuePosition; }
     public QueueStatus getStatus() { return status; }
     public LocalDateTime getIssuedAt() { return issuedAt; }
