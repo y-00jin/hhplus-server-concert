@@ -1,5 +1,7 @@
 package kr.hhplus.be.server.infrastructure.persistence.queue;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import kr.hhplus.be.server.domain.queue.QueueStatus;
 import kr.hhplus.be.server.domain.queue.QueueToken;
 import kr.hhplus.be.server.domain.queue.QueueTokenRepository;
@@ -12,6 +14,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 @RequiredArgsConstructor
@@ -70,8 +73,21 @@ public class RedisQueueTokenRepository implements QueueTokenRepository {
      **/
     @Override
     public Optional<QueueToken> findQueueTokenByTokenId(String tokenId) {
-        Object tokenObj = redisTemplate.opsForValue().get(tokenInfoKey(tokenId));    // tokenInfoKey로 Redis에서 QueueToken 꺼냄
-        return tokenObj != null ? Optional.of((QueueToken) tokenObj) : Optional.empty();
+        Object tokenObj = redisTemplate.opsForValue().get(tokenInfoKey(tokenId));
+        if (tokenObj == null) return Optional.empty();
+
+        if (tokenObj instanceof QueueToken token) {
+            return Optional.of(token);
+        }
+
+        if (tokenObj instanceof java.util.Map map) {
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new JavaTimeModule());
+            QueueToken token = mapper.convertValue(map, QueueToken.class);
+            return Optional.of(token);
+        }
+
+        return Optional.empty();
     }
 
     /**
@@ -130,6 +146,25 @@ public class RedisQueueTokenRepository implements QueueTokenRepository {
         }
     }
 
+    /**
+     * # Method설명 : 대기자 중 첫번째 토큰 조회
+     * # MethodName : findFirstWaitingTokenId
+     **/
+    @Override
+    public Optional<String> findFirstWaitingTokenId(Long scheduleId) {
+        String waitingKey = waitingSetKey(scheduleId);
+        Set<Object> first = redisTemplate.opsForZSet().range(waitingKey, 0, 0);
+        if (first == null || first.isEmpty()) return Optional.empty();
+
+        String userSchedule = (String) first.iterator().next();
+        // userSchedule → tokenId 변환
+        Object token = redisTemplate.opsForValue().get(userSchedule);
+        return token != null ? Optional.of(token.toString()) : Optional.empty();
+    }
+
+
+
+
     // WAITING(대기 중) 상태 토큰 저장용
     private void saveWaitingToken(QueueToken queueToken) {
         String waitingKey = waitingSetKey(queueToken.getScheduleId());
@@ -152,7 +187,7 @@ public class RedisQueueTokenRepository implements QueueTokenRepository {
         String activeKey = activeSetKey(queueToken.getScheduleId());
         String userSchedule = userScheduleKey(queueToken.getUserId(), queueToken.getScheduleId());
         LocalDateTime expiresAt = queueToken.getExpiresAt();
-        if (expiresAt == null) return; // null일 수 없음(정상적이면)
+        if (expiresAt == null) return; // null일 수 없음
 
         // expiresAt(토큰 만료시각)을 UTC 초(epoch)로 변환
         Instant expiresInstant = expiresAt.atZone(ZoneOffset.UTC).toInstant();

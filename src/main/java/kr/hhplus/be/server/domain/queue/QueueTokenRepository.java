@@ -47,4 +47,10 @@ public interface QueueTokenRepository {
      * # MethodName : expiresQueueToken
      **/
     void expiresQueueToken(String tokenId);
+
+    /**
+     * # Method설명 : 대기자 중 첫번째 토큰 조회
+     * # MethodName : findFirstWaitingTokenId
+     **/
+    Optional<String> findFirstWaitingTokenId(Long scheduleId);
 }

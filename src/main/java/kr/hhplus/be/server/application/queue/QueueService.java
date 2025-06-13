@@ -82,6 +82,31 @@ public class QueueService {
         return queueToken.withWaitingPosition(waitingPosition);
     }
 
+    /**
+     * # Method설명 : 콘서트 일정별 대기열 토큰 ACTIVE 상태로 변경
+     * # MethodName : promoteWaitingToActive
+     **/
+    @Transactional
+    public void promoteWaitingToActive(Long scheduleId) {
+        int activeCount = queueTokenRepository.countActiveTokens(scheduleId);
+
+        // ACTIVE 자리가 남아 있는 동안 반복 변경
+        while (activeCount < MAX_ACTIVE_TOKEN_SIZE) {
+            // WAITING ZSet에서 0번 순번 가져오기
+            Optional<String> firstWaitingTokenIdOpt = queueTokenRepository.findFirstWaitingTokenId(scheduleId);
+            if (firstWaitingTokenIdOpt.isEmpty()) break; // 대기자 없으면 끝
+
+            String tokenId = firstWaitingTokenIdOpt.get();
+            QueueToken token = queueTokenRepository.findQueueTokenByTokenId(tokenId)
+                    .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "대기열 토큰이 존재하지 않습니다."));
+
+            // ACTIVE로 변경
+            QueueToken promoted = token.promoteToActive(QUEUE_EXPIRES_TIME);
+            queueTokenRepository.save(promoted);
+
+            activeCount++;
+        }
+    }
 
     /**
      * # Method설명 : 사용자 검증

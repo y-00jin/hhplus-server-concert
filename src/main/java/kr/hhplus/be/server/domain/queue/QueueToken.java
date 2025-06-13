@@ -1,7 +1,11 @@
 package kr.hhplus.be.server.domain.queue;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.time.LocalDateTime;
 
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class QueueToken {
     private String token;            // 대기열 토큰 (랜덤 문자열, UUID 등)
     private Long userId;             // 사용자 PK (user_id)
@@ -11,6 +15,7 @@ public class QueueToken {
     private LocalDateTime issuedAt;  // 토큰 발급 시각
     private LocalDateTime expiresAt; // 토큰 만료 시각
 
+    public QueueToken() {}
     public QueueToken(String token, Long userId, Long scheduleId, Integer queuePosition, QueueStatus status, LocalDateTime issuedAt, LocalDateTime expiresAt) {
         this.token = token;
         this.userId = userId;
@@ -70,6 +75,20 @@ public class QueueToken {
                 this.expiresAt      // 기존 만료시각
         );
     }
+
+
+    public QueueToken promoteToActive(long expiresMinutes) {
+        return new QueueToken(
+                this.token,                  // 기존 토큰 ID 그대로
+                this.userId,                 // 기존 사용자 ID
+                this.scheduleId,             // 기존 콘서트 일정 ID
+                0,                           // queuePosition은 ACTIVE일 땐 0 (대기순번 의미 없음)
+                QueueStatus.ACTIVE,          // 상태를 ACTIVE로 변경
+                this.issuedAt,               // 기존 발급시각
+                LocalDateTime.now().plusMinutes(expiresMinutes)  // 만료 시각을 지금 + 만료시간으로 새로 설정
+        );
+    }
+
 
     /**
      * # Method설명 : 토큰이 활성 상태인지 확인

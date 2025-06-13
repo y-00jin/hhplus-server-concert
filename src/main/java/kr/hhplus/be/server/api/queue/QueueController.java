@@ -15,12 +15,20 @@ public class QueueController {
 
     private final QueueService queueService;
 
+    /**
+     * # Method설명 : 대기열 토큰 발급 요청
+     * # MethodName : issueQueueToken
+     **/
     @PostMapping("/token")
     public ResponseEntity<QueueTokenResponse> issueQueueToken(@RequestBody QueueTokenRequest request) {
         QueueToken queueToken = queueService.issueQueueToken(request.getUserId(), request.getScheduleId());
         return ResponseEntity.ok(from(queueToken));
     }
 
+    /**
+     * # Method설명 : 대기열 토큰 조회
+     * # MethodName : getQueueTokenInfo
+     **/
     @GetMapping("/token")
     public ResponseEntity<QueueTokenResponse> getQueueTokenInfo(@RequestParam Long scheduleId,@RequestParam String tokenId) {
         QueueToken queueToken = queueService.getQueueInfo(scheduleId, tokenId);
