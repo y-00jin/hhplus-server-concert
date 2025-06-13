@@ -28,6 +28,15 @@ public class ConcertScheduleJpaRepository implements ConcertScheduleRepository {
         return scheduleRepository.findByConcertDate(concertDate).map(this::toDomain);
     }
 
+    @Override
+    public Optional<ConcertSchedule> findById(Long scheduleId) {
+        return scheduleRepository.findById(scheduleId).map(this::toDomain);
+    }
+
+    @Override
+    public boolean existsById(Long scheduleId) {
+        return scheduleRepository.existsById(scheduleId);
+    }
 
     private ConcertScheduleEntity toEntity(ConcertSchedule domain) {
         return ConcertScheduleEntity.builder()

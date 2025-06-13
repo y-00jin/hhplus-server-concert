@@ -27,6 +27,11 @@ public class UserJpaRepository implements UserRepository {
         return toDomain(saved);
     }
 
+    @Override
+    public boolean existsById(Long userId) {
+        return jpaRepository.existsById(userId);
+    }
+
 
     private UserEntity toEntity(User domain) {
 

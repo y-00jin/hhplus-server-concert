@@ -86,7 +86,7 @@ public class UserBalance {
 
         // 현재 잔고 < 사용 금액
         if(currentBalance < amount){
-            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "잔액이 부족합니다");
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "잔액이 부족합니다. (필요: " + amount + ", 보유: " + currentBalance + ")");
         }
 
         return create(userId, amount, UserBalanceType.USE, currentBalance - amount, amount +"원 " + UserBalanceType.USE.getDescription());

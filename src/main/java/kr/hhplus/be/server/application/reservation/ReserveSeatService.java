@@ -18,7 +18,6 @@ import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
-@Transactional(readOnly = true)
 @RequiredArgsConstructor
 @Service
 public class ReserveSeatService {   // 좌석 예약 서비스
@@ -93,7 +92,7 @@ public class ReserveSeatService {   // 좌석 예약 서비스
         QueueToken queueToken = queueTokenRepository.findQueueTokenByTokenId(tokenIdOpt.get())
                 .orElseThrow(() -> new ApiException(ErrorCode.INVALID_INPUT_VALUE, "유효하지 않은 대기열 토큰입니다. " + tokenIdOpt.get()));
         if (queueToken.isExpired() || !queueToken.isActive()) {
-            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "대기열 토큰이 만료되었거나 입장 상태가 아닙니다.");
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "대기열 토큰이 만료되었거나 예약 가능 상태가 아닙니다.");
         }
         return queueToken;
     }
