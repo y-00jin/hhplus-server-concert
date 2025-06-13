@@ -1,5 +1,7 @@
 package kr.hhplus.be.server.infrastructure.configuration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,11 +38,14 @@ public class RedisConfig {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
 
-        template.setKeySerializer(new StringRedisSerializer()); // Key는 문자열로 저장
-        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());  // Value는 JSON 형태로 직렬화 (LocalDateTime 등도 지원)
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
 
-        template.setHashKeySerializer(new StringRedisSerializer()); // Hash 자료구조의 Key도 문자열로 저장
-        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());  // Hash의 Value도 JSON 형태로 직렬화
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(serializer);
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashValueSerializer(serializer);
 
         template.afterPropertiesSet();  // 빈 등록 직후 초기화
         return template;

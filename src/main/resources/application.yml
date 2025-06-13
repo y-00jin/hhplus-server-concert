@@ -21,7 +21,7 @@ spring:
       ddl-auto: update
     properties:
       hibernate.timezone.default_storage: NORMALIZE_UTC
-      hibernate.jdbc.time_zone: Asia/Seoul
+      hibernate.jdbc.time_zone: UTC
   # Redis
   data:
     redis:
@@ -33,6 +33,6 @@ spring.config.activate.on-profile: local, test
 
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3307/hhplus?characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+    url: jdbc:mysql://localhost:3307/hhplus?characterEncoding=UTF-8&serverTimezone=UTC
     username: application
     password: application
