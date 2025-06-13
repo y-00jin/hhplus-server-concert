@@ -106,13 +106,14 @@ public class ReserveSeatService {   // 좌석 예약 서비스
                 .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "선택한 좌석("+ seatNumber +")은 존재하지 않습니다."));
 
         // 만료된 임시예약 해제 (좌석 상태 갱신)
+        if (seat.getStatus() == SeatStatus.TEMP_RESERVED && seat.isExpired(RESERVATION_TIMEOUT_MINUTES)) {
+            seat.releaseAssignment();
+            seatRepository.save(seat);
+        }
+
+        // 예약 불가능한 상태라면 예외
         if (!seat.isAvailable(RESERVATION_TIMEOUT_MINUTES)) {
-            if (seat.isExpired(RESERVATION_TIMEOUT_MINUTES)) {  // TEMP_RESERVED(임시 예약) 상태지만 만료된 경우
-                seat.releaseAssignment();   // 임시예약 해제
-                seatRepository.save(seat);  // 좌석 상태 저장
-            } else {
-                throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "선택한 좌석("+ seatNumber +")은 이미 예약된 좌석입니다.");
-            }
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "선택한 좌석("+ seatNumber +")은 이미 예약된 좌석입니다.");
         }
 
         // 임시 예약 처리
