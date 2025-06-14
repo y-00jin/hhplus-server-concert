@@ -19,7 +19,7 @@ import java.util.UUID;
 public class QueueService {
 
     private static final int MAX_ACTIVE_TOKEN_SIZE = 50;    // 동시 입장 허용 인원
-    private static final long QUEUE_EXPIRES_TIME = 30L;     // 토큰 만료 시간 30분
+    private static final long QUEUE_EXPIRES_TIME = 5L;     // 토큰 만료 시간 30분
 
     private final QueueTokenRepository queueTokenRepository;
     private final UserRepository userRepository;

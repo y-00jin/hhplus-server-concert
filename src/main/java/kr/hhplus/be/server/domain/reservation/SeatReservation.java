@@ -55,4 +55,13 @@ public class  SeatReservation {
         this.expiredAt = null;
         this.updatedAt = LocalDateTime.now();
     }
+
+    /**
+     * # Method설명 : 예약 만료 변경
+     * # MethodName : expireReservation
+     **/
+    public void expireReservation() {
+        this.status = ReservationStatus.EXPIRED;
+        this.updatedAt = LocalDateTime.now();
+    }
 }

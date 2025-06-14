@@ -2,6 +2,7 @@ package kr.hhplus.be.server.infrastructure.persistence.reservation;
 
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
+import kr.hhplus.be.server.domain.reservation.ReservationStatus;
 import kr.hhplus.be.server.domain.reservation.SeatReservation;
 import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
 import kr.hhplus.be.server.infrastructure.persistence.concert.SeatEntity;
@@ -10,6 +11,8 @@ import kr.hhplus.be.server.infrastructure.persistence.user.SpringDataUserJpaRepo
 import kr.hhplus.be.server.infrastructure.persistence.user.UserEntity;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -40,6 +43,11 @@ public class SeatReservationJpaRepository implements SeatReservationRepository {
     @Override
     public Optional<SeatReservation> findByReservationIdAndUser_UserId(Long reservationId, Long userId) {
         return seatReservationRepository.findByReservationIdAndUser_UserId(reservationId, userId).map(this::toDomain);
+    }
+
+    @Override
+    public List<SeatReservation> findByStatusAndExpiredAtBefore(ReservationStatus status, LocalDateTime expiredAt) {
+        return seatReservationRepository.findByStatusAndExpiredAtBefore(status, expiredAt);
     }
 
 
