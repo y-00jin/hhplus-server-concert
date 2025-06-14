@@ -25,7 +25,7 @@ public class UserService {   // 좌석 예약 서비스
      **/
     public User getUser(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "해당 ID의 사용자를 찾을 수 없습니다"));
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "해당 ID("+ userId +")의 사용자를 찾을 수 없습니다."));
     }
 
     /**
@@ -36,7 +36,7 @@ public class UserService {   // 좌석 예약 서비스
 
         // 사용자 검증
         userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "해당 ID의 사용자를 찾을 수 없습니다"));
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "해당 ID("+ userId +")의 사용자를 찾을 수 없습니다."));
 
         // 잔액 조회
         return userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)
@@ -52,7 +52,7 @@ public class UserService {   // 좌석 예약 서비스
 
         // 사용자 검증
         userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "해당 ID의 사용자를 찾을 수 없습니다"));
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "해당 ID("+ userId +")의 사용자를 찾을 수 없습니다."));
 
         // 현재 잔액 조회 (없으면 0)
         long currentBalance = userBalanceRepository
@@ -79,7 +79,7 @@ public class UserService {   // 좌석 예약 서비스
 
         // 사용자 검증
         userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "해당 ID의 사용자를 찾을 수 없습니다"));
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "해당 ID("+ userId +")의 사용자를 찾을 수 없습니다."));
 
         // 현재 잔액 조회 (없으면 0)
         long currentBalance = userBalanceRepository

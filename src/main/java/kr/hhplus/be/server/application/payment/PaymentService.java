@@ -78,7 +78,7 @@ public class PaymentService {   // 좌석 예약 서비스
 
         // 임시 예약 상태가 아님 (이미 예약 완료, 취소, 만료 등)
         if (seatReservation.getStatus() != ReservationStatus.TEMP_RESERVED || seatReservation.getExpiredAt().isBefore(LocalDateTime.now())) {
-            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "결제할 수 없는 예약 정보입니다.");
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "결제할 수 없는 예약 정보("+reservationId+")입니다.");
         }
         return seatReservation;
     }

@@ -40,7 +40,7 @@ public class QueueService {
         Optional<String> tokenIdOpt = queueTokenRepository.findTokenIdByUserIdAndScheduleId(userId, scheduleId);
         if (tokenIdOpt.isPresent()) {
             return queueTokenRepository.findQueueTokenByTokenId(tokenIdOpt.get())
-                    .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "대기열 토큰이 존재하지 않습니다."));
+                    .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "사용자 ID("+userId+")로 발급된 대기열 토큰이 존재하지 않습니다."));
         }
 
         // 현재 ACTIVE 토큰 수 확인
@@ -68,11 +68,10 @@ public class QueueService {
     @Transactional(readOnly = true)
     public QueueToken getQueueInfo(Long scheduleId, String tokenId) {
         validateScheduleId(scheduleId);
-
         QueueToken queueToken = queueTokenRepository.findQueueTokenByTokenId(tokenId)
-                .orElseThrow(() -> new ApiException(ErrorCode.INVALID_INPUT_VALUE, "유효하지 않은 대기열 토큰"));
+                .orElseThrow(() -> new ApiException(ErrorCode.INVALID_INPUT_VALUE, "유효하지 않은 대기열 토큰입니다. "));
         if (queueToken.isExpired())
-            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "대기열 토큰이 만료되었습니다.");
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "대기열 토큰이 만료되었거나 예약 가능 상태가 아닙니다.");
 
         if (queueToken.isActive())
             return queueToken;
@@ -98,7 +97,7 @@ public class QueueService {
 
             String tokenId = firstWaitingTokenIdOpt.get();
             QueueToken token = queueTokenRepository.findQueueTokenByTokenId(tokenId)
-                    .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "대기열 토큰이 존재하지 않습니다."));
+                    .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "유효하지 않은 대기열 토큰입니다. " + tokenId));
 
             // ACTIVE로 변경
             QueueToken promoted = token.promoteToActive(QUEUE_EXPIRES_TIME);

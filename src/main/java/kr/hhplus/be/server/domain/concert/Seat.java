@@ -76,7 +76,7 @@ public class Seat {
      **/
     public void reserveTemporarily() {
         if (this.status != SeatStatus.FREE)
-            throw new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "선택한 좌석은 이미 예약된 좌석입니다.");
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "선택한 좌석("+ seatNumber +")은 이미 예약된 좌석입니다.");
 
         this.status = SeatStatus.TEMP_RESERVED;
         this.updatedAt = LocalDateTime.now();  // 임시예약 시각 기록

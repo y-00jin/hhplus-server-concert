@@ -36,7 +36,7 @@ public class ConcertService {
 
         // 콘서트 일정 조회 (날짜로)
         ConcertSchedule schedule = scheduleRepository.findByConcertDate(date)
-                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "해당 날짜의 콘서트 일정이 없습니다."));
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "해당 날짜("+date+")의 콘서트 일정이 없습니다."));
 
         // 좌석 조회 (해당 일정ID 기준)
         return seatRepository.findAllByConcertSchedule_ScheduleIdAndStatus(schedule.getScheduleId(), SeatStatus.FREE);
