@@ -22,7 +22,7 @@ public class QueueController {
     @PostMapping("/token")
     public ResponseEntity<QueueTokenResponse> issueQueueToken(@RequestBody QueueTokenRequest request) {
         QueueToken queueToken = queueService.issueQueueToken(request.getUserId(), request.getScheduleId());
-        return ResponseEntity.ok(from(queueToken));
+        return ResponseEntity.ok(toResponse(queueToken));
     }
 
     /**
@@ -32,10 +32,10 @@ public class QueueController {
     @GetMapping("/token")
     public ResponseEntity<QueueTokenResponse> getQueueTokenInfo(@RequestParam Long scheduleId,@RequestParam String tokenId) {
         QueueToken queueToken = queueService.getQueueInfo(scheduleId, tokenId);
-        return ResponseEntity.ok(from(queueToken));
+        return ResponseEntity.ok(toResponse(queueToken));
     }
 
-    private QueueTokenResponse from(QueueToken queueToken){
+    private QueueTokenResponse toResponse(QueueToken queueToken){
         return QueueTokenResponse.builder()
                 .token(queueToken.getToken())
                 .userId(queueToken.getUserId())

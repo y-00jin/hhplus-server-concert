@@ -23,15 +23,7 @@ public class UserController {
     @GetMapping("/{userId}/balance")
     public ResponseEntity<UserBalanceResponse> getUserBalance(@PathVariable("userId") Long userId) {
         UserBalance userBalance = userService.getCurrentBalance(userId);
-        UserBalanceResponse response = UserBalanceResponse.builder()
-                .balanceHistoryId(userBalance.getBalanceHistoryId())
-                .userId(userBalance.getUserId())
-                .amount(userBalance.getAmount())
-                .type(userBalance.getType())
-                .currentBalance(userBalance.getCurrentBalance())
-                .description(userBalance.getDescription())
-                .build();
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(toResponse(userBalance));
     }
 
     /**
@@ -41,15 +33,7 @@ public class UserController {
     @PostMapping("/{userId}/balance/charge")
     public ResponseEntity<UserBalanceResponse> chargeUserBalance(@PathVariable("userId") Long userId, @RequestBody UserBalanceRequest request) {
         UserBalance userBalance = userService.chargeBalance(userId, request.getAmount());
-        UserBalanceResponse response = UserBalanceResponse.builder()
-                .balanceHistoryId(userBalance.getBalanceHistoryId())
-                .userId(userBalance.getUserId())
-                .amount(userBalance.getAmount())
-                .type(userBalance.getType())
-                .currentBalance(userBalance.getCurrentBalance())
-                .description(userBalance.getDescription())
-                .build();
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(toResponse(userBalance));
     }
 
     /**
@@ -59,7 +43,11 @@ public class UserController {
     @PostMapping("/{userId}/balance/use")
     public ResponseEntity<UserBalanceResponse> useUserBalance(@PathVariable("userId") Long userId, @RequestBody UserBalanceRequest request) {
         UserBalance userBalance = userService.useBalance(userId, request.getAmount());
-        UserBalanceResponse response = UserBalanceResponse.builder()
+        return ResponseEntity.ok(toResponse(userBalance));
+    }
+
+    private UserBalanceResponse toResponse(UserBalance userBalance){
+        return UserBalanceResponse.builder()
                 .balanceHistoryId(userBalance.getBalanceHistoryId())
                 .userId(userBalance.getUserId())
                 .amount(userBalance.getAmount())
@@ -67,6 +55,5 @@ public class UserController {
                 .currentBalance(userBalance.getCurrentBalance())
                 .description(userBalance.getDescription())
                 .build();
-        return ResponseEntity.ok(response);
     }
 }
