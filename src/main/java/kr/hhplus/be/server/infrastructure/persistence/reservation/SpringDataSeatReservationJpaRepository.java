@@ -1,7 +1,6 @@
 package kr.hhplus.be.server.infrastructure.persistence.reservation;
 
 import kr.hhplus.be.server.domain.reservation.ReservationStatus;
-import kr.hhplus.be.server.domain.reservation.SeatReservation;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
@@ -12,5 +11,5 @@ public interface SpringDataSeatReservationJpaRepository extends JpaRepository<Se
 
     Optional<SeatReservationEntity> findByReservationIdAndUser_UserId(Long reservationId, Long userId);
 
-    List<SeatReservation> findByStatusAndExpiredAtBefore(ReservationStatus status, LocalDateTime expiredAt);
+    List<SeatReservationEntity> findByStatusAndExpiredAtBefore(ReservationStatus status, LocalDateTime expiredAt);
 }

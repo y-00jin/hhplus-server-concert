@@ -47,7 +47,8 @@ public class SeatReservationJpaRepository implements SeatReservationRepository {
 
     @Override
     public List<SeatReservation> findByStatusAndExpiredAtBefore(ReservationStatus status, LocalDateTime expiredAt) {
-        return seatReservationRepository.findByStatusAndExpiredAtBefore(status, expiredAt);
+        return seatReservationRepository.findByStatusAndExpiredAtBefore(status, expiredAt)
+                .stream().map(this::toDomain).toList();
     }
 
 
