@@ -1,5 +1,6 @@
 package kr.hhplus.be.server.application.user;
 
+import kr.hhplus.be.server.api.user.dto.UserBalanceRequest;
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
 import kr.hhplus.be.server.domain.user.*;
@@ -113,6 +114,31 @@ public class UserServiceTest {
     }
 
     @Test
+    void 잔액_충전_실패_사용자_없음() {
+        // given
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> userService.chargeBalance(userId, 10000L))
+                .isInstanceOfSatisfying(ApiException.class,
+                        ex -> assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND)
+                );
+    }
+
+    @Test
+    void 사용자아이디로_잔액_충전_실패_최소금액미만() {
+        // given
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        // when & then
+        assertThatThrownBy(() ->  userService.chargeBalance(userId, 0L))
+                .isInstanceOfSatisfying(ApiException.class, ex ->
+                        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE)
+                );
+
+        verify(userRepository, times(1)).findById(userId);
+    }
+
+    @Test
     void 잔액_사용_성공() {
         // given
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
@@ -142,18 +168,6 @@ public class UserServiceTest {
     }
 
     @Test
-    void 잔액_충전_실패_사용자_없음() {
-        // given
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
-
-        // when & then
-        assertThatThrownBy(() -> userService.chargeBalance(userId, 10000L))
-                .isInstanceOfSatisfying(ApiException.class,
-                        ex -> assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND)
-                );
-    }
-
-    @Test
     void 잔액_사용_실패_사용자_없음() {
         // given
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
@@ -163,5 +177,47 @@ public class UserServiceTest {
                 .isInstanceOfSatisfying(ApiException.class,
                         ex -> assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND)
                 );
+    }
+
+    @Test
+    void 사용자아이디로_잔액_사용_실패_최소금액미만() {
+        // given
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        // when & then
+        assertThatThrownBy(() ->  userService.useBalance(userId, 0L))
+                .isInstanceOfSatisfying(ApiException.class, ex ->
+                        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE)
+                );
+
+        verify(userRepository, times(1)).findById(userId);
+    }
+
+    @Test
+    void 사용자아이디로_포인트_사용_실패_잔액부족() {
+
+        // given
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        long currentBalance = 10000L;
+
+        UserBalance current = new UserBalance(
+                1L,
+                userId,
+                currentBalance,
+                UserBalanceType.CHARGE,
+                currentBalance,
+                null,
+                null
+        );
+        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)).thenReturn(Optional.of(current));
+
+        // when & then
+        assertThatThrownBy(() -> userService.useBalance(userId, 50000L))
+                .isInstanceOfSatisfying(ApiException.class, ex ->
+                        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE)
+                );
+        verify(userRepository, times(1)).findById(userId);
+        verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId);
     }
 }
