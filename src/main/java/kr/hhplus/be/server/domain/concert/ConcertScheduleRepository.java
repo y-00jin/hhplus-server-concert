@@ -17,4 +17,8 @@ public interface ConcertScheduleRepository {
 
     boolean existsById(Long scheduleId);
 
+    ConcertSchedule save(ConcertSchedule concertSchedule);
+
+    void deleteAllForTest();
+
 }

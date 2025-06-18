@@ -34,6 +34,17 @@ public class ConcertScheduleJpaRepository implements ConcertScheduleRepository {
     }
 
     @Override
+    public ConcertSchedule save(ConcertSchedule concertSchedule) {
+        ConcertScheduleEntity saved = scheduleRepository.save(toEntity(concertSchedule));
+        return toDomain(saved);
+    }
+
+    @Override
+    public void deleteAllForTest() {
+        scheduleRepository.deleteAll();
+    }
+
+    @Override
     public boolean existsById(Long scheduleId) {
         return scheduleRepository.existsById(scheduleId);
     }

@@ -16,4 +16,6 @@ public interface SeatRepository {
     Seat save(Seat payment);
 
     Optional<Seat> findById(Long seatId);
+
+    void deleteAllForTest();
 }

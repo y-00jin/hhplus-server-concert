@@ -49,6 +49,11 @@ public class SeatJpaRepository implements SeatRepository {
         return seatRepository.findById(seatId).map(this::toDomain);
     }
 
+    @Override
+    public void deleteAllForTest() {
+        seatRepository.deleteAll();
+    }
+
 
     private SeatEntity toEntity(Seat domain) {
         ConcertScheduleEntity scheduleEntity =  scheduleRepository.findById(domain.getScheduleId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, null));

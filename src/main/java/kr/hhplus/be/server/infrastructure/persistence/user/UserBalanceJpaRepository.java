@@ -31,6 +31,11 @@ public class UserBalanceJpaRepository implements UserBalanceRepository {
         return toDomain(saved);
     }
 
+    @Override
+    public void deleteAllForTest() {
+        userBalanceRepository.deleteAll();
+    }
+
     private UserBalanceEntity toEntity(UserBalance domain) {
         // 1. id로 User, Seat 객체 조회
         UserEntity user = userRepository.findById(domain.getUserId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, null));

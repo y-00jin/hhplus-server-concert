@@ -11,4 +11,6 @@ public interface UserBalanceRepository {
     Optional<UserBalance> findTopByUser_UserIdOrderByBalanceHistoryIdDesc(Long userId);
 
     UserBalance save(UserBalance userBalance);
+
+    void deleteAllForTest();
 }

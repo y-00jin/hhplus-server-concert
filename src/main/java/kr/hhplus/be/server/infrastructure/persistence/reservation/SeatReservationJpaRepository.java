@@ -51,6 +51,11 @@ public class SeatReservationJpaRepository implements SeatReservationRepository {
                 .stream().map(this::toDomain).toList();
     }
 
+    @Override
+    public void deleteAllForTest() {
+        seatReservationRepository.deleteAll();
+    }
+
 
     private SeatReservationEntity toEntity(SeatReservation domain) {
 

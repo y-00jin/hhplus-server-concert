@@ -28,6 +28,11 @@ public class PaymentJpaRepository implements PaymentRepository {
         return toDomain(saved);
     }
 
+    @Override
+    public void deleteAllForTest() {
+        paymentRepository.deleteAll();
+    }
+
     private PaymentEntity toEntity(Payment p) {
 
         UserEntity user = userRepository.findById(p.getUserId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, null));

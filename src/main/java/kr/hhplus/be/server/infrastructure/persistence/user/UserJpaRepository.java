@@ -32,6 +32,11 @@ public class UserJpaRepository implements UserRepository {
         return jpaRepository.existsById(userId);
     }
 
+    @Override
+    public void deleteAllForTest() {
+        jpaRepository.deleteAll();
+    }
+
 
     private UserEntity toEntity(User domain) {
 
