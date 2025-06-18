@@ -11,15 +11,22 @@ spring:
       connection-timeout: 10000
       max-lifetime: 60000
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # JPA
   jpa:
     open-in-view: false
     generate-ddl: false
     show-sql: false
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     properties:
       hibernate.timezone.default_storage: NORMALIZE_UTC
       hibernate.jdbc.time_zone: UTC
+  # Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
 ---
 spring.config.activate.on-profile: local, test

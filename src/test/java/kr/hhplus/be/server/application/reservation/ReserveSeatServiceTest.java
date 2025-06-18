@@ -1,0 +1,186 @@
+package kr.hhplus.be.server.application.reservation;
+
+
+import kr.hhplus.be.server.common.exception.ApiException;
+import kr.hhplus.be.server.domain.concert.*;
+import kr.hhplus.be.server.domain.lock.DistributedLockRepository;
+import kr.hhplus.be.server.domain.queue.QueueToken;
+import kr.hhplus.be.server.domain.queue.QueueTokenRepository;
+import kr.hhplus.be.server.domain.reservation.SeatReservation;
+import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
+import kr.hhplus.be.server.domain.user.User;
+import kr.hhplus.be.server.domain.user.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.time.LocalDate;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+class ReserveSeatServiceTest {
+
+    @InjectMocks
+    ReserveSeatService reserveSeatService;
+
+    @Mock
+    SeatReservationRepository reservationRepository;
+    @Mock
+    ConcertScheduleRepository scheduleRepository;
+    @Mock
+    SeatRepository seatRepository;
+    @Mock
+    UserRepository userRepository;
+    @Mock
+    QueueTokenRepository queueTokenRepository;
+    @Mock
+    DistributedLockRepository distributedLockRepository;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    @DisplayName("좌석 예약 성공 - 정상 플로우")
+    void reserveSeat_Success() {
+        // given
+        Long userId = 1L;
+        LocalDate concertDate = LocalDate.now().plusDays(1);
+        int seatNumber = 1;
+
+        User user = mock(User.class);
+        ConcertSchedule schedule = mock(ConcertSchedule.class);
+        QueueToken queueToken = mock(QueueToken.class);
+        Seat seat = mock(Seat.class);
+        SeatReservation reservation = mock(SeatReservation.class);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(scheduleRepository.findByConcertDate(concertDate)).thenReturn(Optional.of(schedule));
+        when(schedule.getScheduleId()).thenReturn(100L);
+        when(schedule.getConcertDate()).thenReturn(concertDate);
+
+        when(queueTokenRepository.findTokenIdByUserIdAndScheduleId(eq(userId), eq(100L)))
+                .thenReturn(Optional.of("queue-token-id"));
+        when(queueTokenRepository.findQueueTokenByTokenId("queue-token-id"))
+                .thenReturn(Optional.of(queueToken));
+        when(queueToken.isExpired()).thenReturn(false);
+        when(queueToken.isActive()).thenReturn(true);
+
+        // Lock 획득 성공
+        when(distributedLockRepository.tryLock(anyString(), anyString(), anyLong())).thenReturn(true);
+
+        // Seat 조회 및 임시예약 가능
+        when(seatRepository.findByConcertSchedule_ScheduleIdAndSeatNumber(100L, seatNumber))
+                .thenReturn(Optional.of(seat));
+        when(seat.getStatus()).thenReturn(SeatStatus.TEMP_RESERVED);
+        when(seat.isExpired(anyInt())).thenReturn(false);
+        when(seat.isAvailable(anyInt())).thenReturn(true);
+        // 임시 예약 처리시 seat 변경 처리 mock
+        doNothing().when(seat).reserveTemporarily();
+        when(seat.getSeatId()).thenReturn(123L);
+
+        // 예약 저장
+        when(reservationRepository.save(any())).thenReturn(reservation);
+
+        // when
+        SeatReservation result = reserveSeatService.reserveSeat(userId, concertDate, seatNumber);
+
+        // then
+        assertThat(result).isNotNull();
+        verify(seatRepository, times(1)).save(seat);
+        verify(reservationRepository, times(1)).save(any(SeatReservation.class));
+        verify(distributedLockRepository, times(1)).tryLock(anyString(), anyString(), anyLong());
+        verify(distributedLockRepository, times(1)).unlock(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("좌석 예약 실패 - 사용자 없음")
+    void reserveSeat_userNotFound() {
+        // given
+        Long userId = 2L;
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, LocalDate.now().plusDays(1), 5))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("사용자를 찾을 수 없습니다");
+    }
+
+    @Test
+    @DisplayName("좌석 예약 실패 - 일정 없음")
+    void reserveSeat_scheduleNotFound() {
+        // given
+        Long userId = 1L;
+        LocalDate concertDate = LocalDate.now().plusDays(1);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(mock(User.class)));
+        when(scheduleRepository.findByConcertDate(concertDate)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, concertDate, 5))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("콘서트가 존재하지 않습니다");
+    }
+
+    @Test
+    @DisplayName("좌석 예약 실패 - 대기열 토큰 없음")
+    void reserveSeat_noQueueToken() {
+        // given
+        Long userId = 1L;
+        LocalDate concertDate = LocalDate.now().plusDays(1);
+        ConcertSchedule schedule = mock(ConcertSchedule.class);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(mock(User.class)));
+        when(scheduleRepository.findByConcertDate(concertDate)).thenReturn(Optional.of(schedule));
+        when(schedule.getScheduleId()).thenReturn(42L);
+        when(schedule.getConcertDate()).thenReturn(concertDate);
+
+        when(queueTokenRepository.findTokenIdByUserIdAndScheduleId(userId, 42L))
+                .thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, concertDate, 7))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("대기열 토큰이 존재하지 않습니다");
+    }
+
+    @Test
+    @DisplayName("좌석 예약 실패 - 락 획득 실패")
+    void reserveSeat_lockFail() {
+        // given
+        Long userId = 1L;
+        LocalDate concertDate = LocalDate.now().plusDays(1);
+        int seatNumber = 99;
+        User user = mock(User.class);
+        ConcertSchedule schedule = mock(ConcertSchedule.class);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(scheduleRepository.findByConcertDate(concertDate)).thenReturn(Optional.of(schedule));
+        when(schedule.getScheduleId()).thenReturn(77L);
+        when(schedule.getConcertDate()).thenReturn(concertDate);
+
+        when(queueTokenRepository.findTokenIdByUserIdAndScheduleId(userId, 77L))
+                .thenReturn(Optional.of("token77"));
+        QueueToken queueToken = mock(QueueToken.class);
+        when(queueTokenRepository.findQueueTokenByTokenId("token77"))
+                .thenReturn(Optional.of(queueToken));
+        when(queueToken.isExpired()).thenReturn(false);
+        when(queueToken.isActive()).thenReturn(true);
+
+        // 락 획득 실패
+        when(distributedLockRepository.tryLock(anyString(), anyString(), anyLong()))
+                .thenReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, concertDate, seatNumber))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("예약이 이미 진행 중입니다");
+    }
+}
