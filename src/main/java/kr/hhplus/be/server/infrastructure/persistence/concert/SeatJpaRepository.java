@@ -65,6 +65,7 @@ public class SeatJpaRepository implements SeatRepository {
                 .status(domain.getStatus())
                 .createdAt(domain.getCreatedAt())
                 .updatedAt(domain.getUpdatedAt())
+                .version(domain.getVersion())
                 .build();
     }
 
@@ -76,7 +77,8 @@ public class SeatJpaRepository implements SeatRepository {
                 entity.getPrice(),
                 entity.getStatus(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                entity.getVersion()
         );
     }
 }

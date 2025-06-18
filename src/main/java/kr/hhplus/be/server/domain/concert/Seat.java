@@ -14,8 +14,9 @@ public class Seat {
     private SeatStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Long version;
 
-    public Seat(Long seatId, Long scheduleId, int seatNumber, int price, SeatStatus status, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public Seat(Long seatId, Long scheduleId, int seatNumber, int price, SeatStatus status, LocalDateTime createdAt, LocalDateTime updatedAt, Long version) {
         this.seatId = seatId;
         this.scheduleId = scheduleId;
         this.seatNumber = seatNumber;
@@ -23,11 +24,12 @@ public class Seat {
         this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.version = version;
     }
 
     public static Seat create(Long scheduleId, int seatNumber, int price, SeatStatus status) {
         LocalDateTime now = LocalDateTime.now();
-        return new Seat(null, scheduleId, seatNumber, price, status, now, now);
+        return new Seat(null, scheduleId, seatNumber, price, status, now, now, 0L);
     }
 
     public void assignId(Long seatId) {
@@ -61,6 +63,7 @@ public class Seat {
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
+    public Long getVersion() { return version; }
 
     /**
      * # Method설명 : 상태값 변경

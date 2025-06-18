@@ -11,8 +11,9 @@ public class  SeatReservation {
     private LocalDateTime expiredAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Long version;
 
-    public SeatReservation(Long reservationId, Long userId, Long seatId, ReservationStatus status, LocalDateTime expiredAt, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public SeatReservation(Long reservationId, Long userId, Long seatId, ReservationStatus status, LocalDateTime expiredAt, LocalDateTime createdAt, LocalDateTime updatedAt, Long version) {
         this.reservationId = reservationId;
         this.userId = userId;
         this.seatId = seatId;
@@ -20,6 +21,7 @@ public class  SeatReservation {
         this.expiredAt = expiredAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.version = version;
     }
 
     public Long getReservationId() { return reservationId; }
@@ -29,12 +31,13 @@ public class  SeatReservation {
     public LocalDateTime getExpiredAt() { return expiredAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public Long getVersion() { return version; }
     public void assignId(Long reservationId) { this.reservationId = reservationId; }
 
 
     public static SeatReservation create(Long userId, Long seatId, ReservationStatus status, LocalDateTime expiredAt) {
         LocalDateTime now = LocalDateTime.now();
-        return new SeatReservation(null, userId, seatId, status, expiredAt, now, now);
+        return new SeatReservation(null, userId, seatId, status, expiredAt, now, now, 0L);
     }
 
     /**
