@@ -22,7 +22,7 @@ class SeatTest {
         LocalDateTime now = LocalDateTime.now();
 
         // when
-        Seat seat = new Seat(seatId, scheduleId, seatNumber, price, status, now, now);
+        Seat seat = new Seat(seatId, scheduleId, seatNumber, price, status, now, now, 0L);
 
         // then
         assertThat(seat.getSeatId()).isEqualTo(seatId);
@@ -145,7 +145,7 @@ class SeatTest {
     void isAvailable_TEMP_RESERVED_만료상태_true() {
         // given: 20분 전 임시예약
         LocalDateTime old = LocalDateTime.now().minusMinutes(20);
-        Seat seat = new Seat(10L, 1L, 4, 12000, SeatStatus.TEMP_RESERVED, old, old);
+        Seat seat = new Seat(10L, 1L, 4, 12000, SeatStatus.TEMP_RESERVED, old, old, 0L);
 
         // when
         boolean result = seat.isAvailable(10);
@@ -158,7 +158,7 @@ class SeatTest {
     void isAvailable_TEMP_RESERVED_미만료상태_false() {
         // given: 2분 전 임시예약
         LocalDateTime recent = LocalDateTime.now().minusMinutes(2);
-        Seat seat = new Seat(10L, 1L, 5, 12000, SeatStatus.TEMP_RESERVED, recent, recent);
+        Seat seat = new Seat(10L, 1L, 5, 12000, SeatStatus.TEMP_RESERVED, recent, recent, 0L);
 
         // when
         boolean result = seat.isAvailable(10);
@@ -171,7 +171,7 @@ class SeatTest {
     void isExpired_TEMP_RESERVED_만료상태_true() {
         // given: 15분 전 임시예약
         LocalDateTime old = LocalDateTime.now().minusMinutes(15);
-        Seat seat = new Seat(1L, 1L, 6, 13000, SeatStatus.TEMP_RESERVED, old, old);
+        Seat seat = new Seat(1L, 1L, 6, 13000, SeatStatus.TEMP_RESERVED, old, old, 0L);
 
         // when
         boolean result = seat.isExpired(10);
@@ -184,7 +184,7 @@ class SeatTest {
     void isExpired_TEMP_RESERVED_미만료상태_false() {
         // given: 5분 전 임시예약
         LocalDateTime recent = LocalDateTime.now().minusMinutes(5);
-        Seat seat = new Seat(2L, 2L, 7, 14000, SeatStatus.TEMP_RESERVED, recent, recent);
+        Seat seat = new Seat(2L, 2L, 7, 14000, SeatStatus.TEMP_RESERVED, recent, recent, 0L);
 
         // when
         boolean result = seat.isExpired(10);

@@ -53,8 +53,8 @@ class ConcertServiceTest {
         ConcertSchedule schedule = new ConcertSchedule(scheduleId, date, null, null);
         when(scheduleRepository.findByConcertDate(date)).thenReturn(Optional.of(schedule));
 
-        Seat seat1 = new Seat(1L, scheduleId, 1, 10000, SeatStatus.FREE, null, null);
-        Seat seat2 = new Seat(2L, scheduleId, 2, 10000, SeatStatus.FREE, null, null);
+        Seat seat1 = new Seat(1L, scheduleId, 1, 10000, SeatStatus.FREE, null, null, 0L);
+        Seat seat2 = new Seat(2L, scheduleId, 2, 10000, SeatStatus.FREE, null, null, 0L);
         List<Seat> seatList = Arrays.asList(seat1, seat2);
 
         when(seatRepository.findAllByConcertSchedule_ScheduleIdAndStatus(scheduleId, SeatStatus.FREE))

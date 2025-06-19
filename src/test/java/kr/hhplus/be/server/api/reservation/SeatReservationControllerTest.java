@@ -52,7 +52,8 @@ class SeatReservationControllerTest {
                 ReservationStatus.TEMP_RESERVED,
                 LocalDateTime.now().plusMinutes(5),
                 LocalDateTime.now(),
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                0L
         );
 
         when(reserveSeatService.reserveSeat(
