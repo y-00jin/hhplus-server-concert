@@ -23,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-@Transactional(readOnly = true)
 @RequiredArgsConstructor
 @Service
 public class PaymentService {   // 좌석 예약 서비스
