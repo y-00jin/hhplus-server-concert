@@ -78,7 +78,7 @@ class ReservationFlowIntegrationTest {
 
         // 콘서트 일정 및 좌석 등록
         scheduleId = scheduleRepository.save(new ConcertSchedule(null, concertDate, now, now)).getScheduleId();
-        seatId = seatRepository.save(new Seat(null, scheduleId, seatNumber, 30000, SeatStatus.FREE, now, now, 0L)).getSeatId();
+        seatId = seatRepository.save(new Seat(null, scheduleId, seatNumber, 30000, SeatStatus.FREE, now, now)).getSeatId();
 
         // 포인트 충전
         userBalanceRepository.save(UserBalance.charge(userId, 50000L, 0L));

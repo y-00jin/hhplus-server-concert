@@ -70,7 +70,7 @@ class SeatReservationTest {
         LocalDateTime updatedAt = now;
 
         // when
-        SeatReservation reservation = new SeatReservation(reservationId, userId, seatId, status, expiredAt, now, updatedAt, 0L);
+        SeatReservation reservation = new SeatReservation(reservationId, userId, seatId, status, expiredAt, now, updatedAt);
 
         // then
         assertThat(reservation.getReservationId()).isEqualTo(reservationId);

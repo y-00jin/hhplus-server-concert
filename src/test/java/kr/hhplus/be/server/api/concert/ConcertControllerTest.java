@@ -60,8 +60,8 @@ public class ConcertControllerTest {
     void getAvailableSeatsByDate() throws Exception {
 
         LocalDate date = LocalDate.of(2025, 7, 1);
-        Seat seat1 = new Seat(1L, 1L, 1, 10000, SeatStatus.FREE, null, null, 0L);
-        Seat seat2 = new Seat(2L, 1L, 2, 10000, SeatStatus.FREE, null, null, 0L);
+        Seat seat1 = new Seat(1L, 1L, 1, 10000, SeatStatus.FREE, null, null);
+        Seat seat2 = new Seat(2L, 1L, 2, 10000, SeatStatus.FREE, null, null);
         List<Seat> seatList = Arrays.asList(seat1, seat2);
 
         when(concertService.getAvailableSeatsByDate(date)).thenReturn(seatList);

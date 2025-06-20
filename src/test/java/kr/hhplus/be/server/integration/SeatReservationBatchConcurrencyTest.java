@@ -24,7 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Slf4j
@@ -64,7 +64,7 @@ public class SeatReservationBatchConcurrencyTest {
 
         // 콘서트 일정 및 좌석 등록 (좌석은 임시 예약 상태로)
         scheduleId = scheduleRepository.save(new ConcertSchedule(null, LocalDate.of(2025, 7, 1), now, now)).getScheduleId();
-        seatId = seatRepository.save(new Seat(null, scheduleId, 1, 30000, SeatStatus.TEMP_RESERVED , now, now, 0L)).getSeatId();
+        seatId = seatRepository.save(new Seat(null, scheduleId, 1, 30000, SeatStatus.TEMP_RESERVED , now, now)).getSeatId();
 
         // 대기열 토큰 발급
         queueTokenRepository.save(new QueueToken(UUID.randomUUID().toString(), userId, scheduleId, 0, QueueStatus.ACTIVE, now.minusMinutes(6), now.minusMinutes(1)));
@@ -79,7 +79,7 @@ public class SeatReservationBatchConcurrencyTest {
         LocalDateTime createdAt = now.minusMinutes(6);    // 생성 시간 (5분전)
 
         SeatReservation reservation = seatReservationRepository.save(
-                new SeatReservation(null, userId, seatId, ReservationStatus.TEMP_RESERVED, expiredAt, createdAt, createdAt, 0L)
+                new SeatReservation(null, userId, seatId, ReservationStatus.TEMP_RESERVED, expiredAt, createdAt, createdAt)
         );
         Long reservationId = reservation.getReservationId();
 
@@ -148,8 +148,8 @@ public class SeatReservationBatchConcurrencyTest {
         ).isTrue();
 
         // 3. version 값이 1 이상으로 올라갔는지(낙관적락 동작)
-        assertThat(finalReservation.getVersion()).isGreaterThanOrEqualTo(1L);
-        assertThat(finalSeat.getVersion()).isGreaterThanOrEqualTo(1L);
+//        assertThat(finalReservation.getVersion()).isGreaterThanOrEqualTo(1L);
+//        assertThat(finalSeat.getVersion()).isGreaterThanOrEqualTo(1L);
 
     }
 }

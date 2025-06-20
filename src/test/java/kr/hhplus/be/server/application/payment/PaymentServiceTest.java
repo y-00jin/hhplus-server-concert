@@ -62,8 +62,8 @@ class PaymentServiceTest {
         long currentBalance = 50000L;
 
         User user = new User(userId, "", "test@test.com", "pw", "사용자", null, null);
-        Seat seat = new Seat(seatId, scheduleId, 1, price, SeatStatus.TEMP_RESERVED, LocalDateTime.now(), LocalDateTime.now(), 0L);
-        SeatReservation reservation = new SeatReservation(reservationId, userId, seatId, ReservationStatus.TEMP_RESERVED, LocalDateTime.now().plusMinutes(10), LocalDateTime.now(), LocalDateTime.now(), 0L);
+        Seat seat = new Seat(seatId, scheduleId, 1, price, SeatStatus.TEMP_RESERVED, LocalDateTime.now(), LocalDateTime.now());
+        SeatReservation reservation = new SeatReservation(reservationId, userId, seatId, ReservationStatus.TEMP_RESERVED, LocalDateTime.now().plusMinutes(10), LocalDateTime.now(), LocalDateTime.now());
         Payment payment = Payment.create(userId, reservationId, price, PaymentStatus.SUCCESS);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
@@ -113,8 +113,7 @@ class PaymentServiceTest {
                 ReservationStatus.TEMP_RESERVED,
                 LocalDateTime.now().minusMinutes(1),  // 만료
                 LocalDateTime.now().minusMinutes(10),
-                LocalDateTime.now(),
-                0L
+                LocalDateTime.now()
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(mock(User.class)));

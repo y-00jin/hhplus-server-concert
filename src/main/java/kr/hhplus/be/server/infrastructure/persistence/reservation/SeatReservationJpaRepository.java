@@ -71,7 +71,6 @@ public class SeatReservationJpaRepository implements SeatReservationRepository {
                 .expiredAt(domain.getExpiredAt())
                 .createdAt(domain.getCreatedAt())
                 .updatedAt(domain.getUpdatedAt())
-                .version(domain.getVersion())
                 .build();
     }
 
@@ -83,8 +82,7 @@ public class SeatReservationJpaRepository implements SeatReservationRepository {
                 entity.getStatus(),
                 entity.getExpiredAt(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt(),
-                entity.getVersion()
+                entity.getUpdatedAt()
         );
     }
 }
