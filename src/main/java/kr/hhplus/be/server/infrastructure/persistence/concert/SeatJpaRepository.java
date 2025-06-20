@@ -39,6 +39,11 @@ public class SeatJpaRepository implements SeatRepository {
     }
 
     @Override
+    public Optional<Seat> findByConcertSchedule_ScheduleIdAndSeatNumberForUpdate(Long scheduleId, int seatNumber) {
+        return seatRepository.findByConcertSchedule_ScheduleIdAndSeatNumberForUpdate(scheduleId, seatNumber).map(this::toDomain);
+    }
+
+    @Override
     public Seat save(Seat seat) {
         SeatEntity saved = seatRepository.save(toEntity(seat));
         return toDomain(saved);
@@ -65,7 +70,6 @@ public class SeatJpaRepository implements SeatRepository {
                 .status(domain.getStatus())
                 .createdAt(domain.getCreatedAt())
                 .updatedAt(domain.getUpdatedAt())
-                .version(domain.getVersion())
                 .build();
     }
 
@@ -77,8 +81,7 @@ public class SeatJpaRepository implements SeatRepository {
                 entity.getPrice(),
                 entity.getStatus(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt(),
-                entity.getVersion()
+                entity.getUpdatedAt()
         );
     }
 }
