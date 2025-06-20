@@ -55,7 +55,7 @@ public class UserService {   // 좌석 예약 서비스
 
         // 현재 잔액 조회 (없으면 0)
         long currentBalance = userBalanceRepository
-                .findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)
+                .findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId)
                 .map(UserBalance::getCurrentBalance)
                 .orElse(0L);
 
@@ -80,9 +80,10 @@ public class UserService {   // 좌석 예약 서비스
         userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "해당 ID("+ userId +")의 사용자를 찾을 수 없습니다."));
 
+
         // 현재 잔액 조회 (없으면 0)
         long currentBalance = userBalanceRepository
-                .findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)
+                .findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId)
                 .map(UserBalance::getCurrentBalance)
                 .orElse(0L);
 
