@@ -1,8 +1,5 @@
 package kr.hhplus.be.server.application.batch;
 
-import kr.hhplus.be.server.common.exception.ApiException;
-import kr.hhplus.be.server.common.exception.ErrorCode;
-import kr.hhplus.be.server.domain.concert.ConcertSchedule;
 import kr.hhplus.be.server.domain.concert.Seat;
 import kr.hhplus.be.server.domain.concert.SeatRepository;
 import kr.hhplus.be.server.domain.concert.SeatStatus;
@@ -12,9 +9,9 @@ import kr.hhplus.be.server.domain.reservation.SeatReservation;
 import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,6 +27,7 @@ public class SeatReservationBatch {
     private final QueueTokenRepository queueTokenRepository;
 
     @Scheduled(fixedDelay = 100_000)
+    @Transactional
     public void expireTempReservations() {
         LocalDateTime now = LocalDateTime.now();
         // 임시예약 상태(TEMP_RESERVED)면서 만료시각이 현재보다 지난 예약 찾기
@@ -37,31 +35,38 @@ public class SeatReservationBatch {
                 seatReservationRepository.findByStatusAndExpiredAtBefore(ReservationStatus.TEMP_RESERVED, now);
 
         for (SeatReservation reservation : expiredReservations) {
-            try {
+            expireReservationAndSeat(reservation);
+        }
+    }
 
-            if (reservation.getStatus() != ReservationStatus.TEMP_RESERVED) {
-                continue;
-            }
+    @Transactional
+    public void expireReservationAndSeat(SeatReservation reservation) {
+        if (reservation.getStatus() != ReservationStatus.TEMP_RESERVED) {
+            return;
+        }
 
-            // 예약 상태를 EXPIRED로 변경
+        // 1. 좌석에 비관적 락 걸어서 select (seatId 사용)
+        Optional<Seat> seatOpt = seatRepository.findBySeatIdForUpdate(reservation.getSeatId());
+        if (seatOpt.isEmpty()) {
+            log.warn("좌석 없음: {}", reservation.getSeatId());
+            return;
+        }
+        Seat seat = seatOpt.get();
+
+        // 2. 상태 체크 및 만료 처리
+        if (seat.getStatus() == SeatStatus.TEMP_RESERVED) {
+            // 예약 만료 처리
             reservation.expireReservation();
             seatReservationRepository.save(reservation);
 
-            // 좌석 상태 FREE로 변경
-            Seat seat = seatRepository.findById(reservation.getSeatId()).orElseThrow(() -> new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, null));
-            if (seat.getStatus() == SeatStatus.TEMP_RESERVED) {
-                seat.releaseAssignment();
-                seatRepository.save(seat);
-            }
+            // 좌석 만료 처리
+            seat.releaseAssignment();
+            seatRepository.save(seat);
 
-            // 토큰 제거
+            // 토큰 만료
             Long scheduleId = seat.getScheduleId();
             queueTokenRepository.findTokenIdByUserIdAndScheduleId(reservation.getUserId(), scheduleId)
                     .ifPresent(queueTokenRepository::expiresQueueToken);
-
-            } catch (OptimisticLockingFailureException e) {
-                log.error("[ERROR] 동시성 충돌로 예약 만료 스킵: reservationId={}", reservation.getReservationId());
-            }
         }
     }
 }
