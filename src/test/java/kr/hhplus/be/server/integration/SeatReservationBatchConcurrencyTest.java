@@ -3,6 +3,7 @@ package kr.hhplus.be.server.integration;
 import kr.hhplus.be.server.application.batch.SeatReservationBatch;
 import kr.hhplus.be.server.application.payment.PaymentService;
 import kr.hhplus.be.server.domain.concert.*;
+import kr.hhplus.be.server.domain.payment.Payment;
 import kr.hhplus.be.server.domain.payment.PaymentRepository;
 import kr.hhplus.be.server.domain.queue.QueueStatus;
 import kr.hhplus.be.server.domain.queue.QueueToken;
@@ -108,8 +109,9 @@ public class SeatReservationBatchConcurrencyTest {
         executor.execute(() -> {
             try {
                 seatReservationBatch.expireReservationAndSeat(reservation);
+                log.info("[ 좌석 만료 성공 ] reservationId : {}", reservation.getReservationId());
             } catch (Exception e) {
-                log.error("------- 배치 비관적락 예외 발생", e);
+                log.error("[ 좌석 만료 실패 ] {}", e.getMessage());
             } finally {
                 latch.countDown();
             }
@@ -118,9 +120,10 @@ public class SeatReservationBatchConcurrencyTest {
         // 2번 스레드: 동시에 유저가 결제 확정 처리
         executor.execute(() -> {
             try {
-                paymentService.payment(userId, reservationId);
+                Payment result = paymentService.payment(userId, reservationId);
+                log.info("[ 결제 성공 ] paymentId : {}", result.getPaymentId());
             } catch (Exception e) {
-                log.error("------- 결제 비관적락 예외 발생", e);
+                log.error("[ 결제 실패 ] {}", e.getMessage());
             } finally {
                 latch.countDown();
             }

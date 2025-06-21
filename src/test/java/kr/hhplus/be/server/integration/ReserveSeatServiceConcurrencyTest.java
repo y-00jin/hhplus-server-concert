@@ -1,14 +1,16 @@
 package kr.hhplus.be.server.integration;
 
+import kr.hhplus.be.server.application.queue.QueueService;
 import kr.hhplus.be.server.application.reservation.ReserveSeatService;
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
 import kr.hhplus.be.server.domain.concert.*;
 import kr.hhplus.be.server.domain.queue.QueueTokenRepository;
+import kr.hhplus.be.server.domain.reservation.SeatReservation;
 import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
 import kr.hhplus.be.server.domain.user.User;
 import kr.hhplus.be.server.domain.user.UserRepository;
-import org.junit.jupiter.api.AfterEach;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,10 +28,13 @@ import static org.assertj.core.api.Assertions.*;
 
 
 @SpringBootTest
+@Slf4j
 public class ReserveSeatServiceConcurrencyTest {
 
     @Autowired
     ReserveSeatService reserveSeatService;
+    @Autowired
+    QueueService queueService;
 
     @Autowired
     UserRepository userRepository;
@@ -42,16 +47,6 @@ public class ReserveSeatServiceConcurrencyTest {
     @Autowired
     SeatReservationRepository seatReservationRepository;
 
-
-    @AfterEach
-    void cleanUp() {
-        seatReservationRepository.deleteAllForTest();
-        seatRepository.deleteAllForTest();
-        scheduleRepository.deleteAllForTest();
-        userRepository.deleteAllForTest();
-        queueTokenRepository.deleteAllForTest();
-    }
-
     @Test
     void 동시에_두_명이_같은_좌석을_예약_시도하면_한_명만_성공() throws Exception {
 
@@ -62,13 +57,16 @@ public class ReserveSeatServiceConcurrencyTest {
         Long userId1 = userRepository.save(new User(null, UUID.randomUUID().toString(), "test1@email.com", "pw", "사용자1", now, now)).getUserId();
         Long userId2 = userRepository.save(new User(null, UUID.randomUUID().toString(), "test2@email.com", "pw", "사용자2", now, now)).getUserId();
 
-        //
-
         LocalDate concertDate = LocalDate.of(2025, 6, 23);
         int seatNumber = 1;
-        // 콘서트 일정 및 좌석 등록 (좌석은 임시 예약 상태로)
+
+        // 콘서트 일정 및 좌석 등록
         Long scheduleId = scheduleRepository.save(new ConcertSchedule(null, concertDate, now, now)).getScheduleId();
-        Long seatId = seatRepository.save(new Seat(null, scheduleId, seatNumber, 30000, SeatStatus.TEMP_RESERVED , now, now)).getSeatId();
+        Long seatId = seatRepository.save(new Seat(null, scheduleId, seatNumber, 30000, SeatStatus.FREE , now, now)).getSeatId();
+
+        // 토큰 발급
+        queueService.issueQueueToken(userId1, scheduleId);
+        queueService.issueQueueToken(userId2, scheduleId);
 
         int threadCount = 2; // 동시 예약 시도
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
@@ -81,9 +79,11 @@ public class ReserveSeatServiceConcurrencyTest {
             final Long userId = (i == 0) ? userId1 : userId2;
             executor.submit(() -> {
                 try {
-                    reserveSeatService.reserveSeat(userId, concertDate, seatNumber);
+                    SeatReservation result = reserveSeatService.reserveSeat(userId, concertDate, seatNumber);
+                    log.info("[ 좌석 예약 성공 ] 사용자 : {}, reservationId : {}", result.getUserId(), result.getReservationId());
                 } catch (Throwable e) {
                     exceptions.add(e);
+                    log.error("[ 좌석 예약 실패 ] 사용자 : {}, {}",userId, e.getMessage());
                 } finally {
                     latch.countDown();
                 }

@@ -32,6 +32,7 @@ public class ReserveSeatService {   // 좌석 예약 서비스
     // 임시예약 만료 시간
     private static final int RESERVATION_TIMEOUT_MINUTES = 5;
 
+    @Transactional
     // 좌석 예약 메인 진입점
     public SeatReservation reserveSeat(Long userId, LocalDate concertDate, int seatNumber) {
 

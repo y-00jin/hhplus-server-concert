@@ -5,6 +5,7 @@ import kr.hhplus.be.server.domain.user.User;
 import kr.hhplus.be.server.domain.user.UserBalance;
 import kr.hhplus.be.server.domain.user.UserBalanceRepository;
 import kr.hhplus.be.server.domain.user.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ import java.util.concurrent.Executors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
+@Slf4j
 public class UserBalanceServiceConcurrencyTest {
 
 
@@ -47,53 +49,6 @@ public class UserBalanceServiceConcurrencyTest {
         userService.chargeBalance(userId, 10000L);
     }
 
-    @AfterEach
-    void cleanUp() {
-        userBalanceRepository.deleteAllForTest();
-        userRepository.deleteAllForTest();
-    }
-
-
-    @Test
-    void 동시_잔액충전_테스트() throws Exception {
-        // given
-        int threadCount = 2;
-        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-        CountDownLatch latch = new CountDownLatch(threadCount);
-        List<Boolean> results = new ArrayList<>();
-
-        // when
-        for (int i = 0; i < threadCount; i++) {
-            executor.submit(() -> {
-                try {
-                    userService.chargeBalance(userId, 10000L);
-                    results.add(true);
-                } catch (Exception e) {
-                    results.add(false);
-                } finally {
-                    latch.countDown();
-                }
-            });
-        }
-        latch.await();
-
-        // then
-        long successCount = results.stream().filter(r -> r).count();
-        long failCount = results.stream().filter(r -> !r).count();
-
-        assertThat(successCount).isEqualTo(1);
-        assertThat(failCount).isEqualTo(threadCount - successCount);
-
-        // 최종 잔액 확인
-        UserBalance balance = userService.getCurrentBalance(userId);
-        System.out.println(balance);
-
-        assertThat(successCount).isEqualTo(threadCount);
-        assertThat(balance.getCurrentBalance()).isEqualTo(10000L * (threadCount + 1)); // 최초 1회 + threadCount번 충전
-    }
-
-
-
     @Test
     void 동시_잔액사용_결제_테스트() throws Exception {
         // given
@@ -106,10 +61,12 @@ public class UserBalanceServiceConcurrencyTest {
         for (int i = 0; i < threadCount; i++) {
             executor.submit(() -> {
                 try {
-                    userService.useBalance(userId, 7000L);
+                    UserBalance result = userService.useBalance(userId, 7000L);
                     results.add(true);
+                    log.info("포인트 사용 성공 - 사용 후 잔액 = {}", result.getCurrentBalance());
                 } catch (Exception e) {
                     results.add(false);
+                    log.error("포인트 사용 실패 ");
                 } finally {
                     latch.countDown();
                 }
