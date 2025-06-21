@@ -13,6 +13,9 @@ public interface SeatRepository {
 
     Optional<Seat> findByConcertSchedule_ScheduleIdAndSeatNumber(Long scheduleId, int seatNumber);
 
+    Optional<Seat> findByConcertSchedule_ScheduleIdAndSeatNumberForUpdate(Long scheduleId, int seatNumber);
+    Optional<Seat> findBySeatIdForUpdate(Long seatId);
+
     Seat save(Seat payment);
 
     Optional<Seat> findById(Long seatId);

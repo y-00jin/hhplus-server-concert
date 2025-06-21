@@ -162,6 +162,31 @@ public class RedisQueueTokenRepository implements QueueTokenRepository {
         return token != null ? Optional.of(token.toString()) : Optional.empty();
     }
 
+    /**
+     * # Method설명 : 테스트용 - 모든 토큰 전체 삭제
+     * # MethodName : deleteAllForTest
+     **/
+    @Override
+    public void deleteAllForTest() {
+        // queue:token:*, queue:user-schedule:*, queue:active:*, queue:waiting:* 전체 삭제
+        Set<String> tokenKeys = redisTemplate.keys("queue:token:*");
+        if (tokenKeys != null && !tokenKeys.isEmpty()) {
+            redisTemplate.delete(tokenKeys);
+        }
+        Set<String> userScheduleKeys = redisTemplate.keys("queue:user-schedule:*");
+        if (userScheduleKeys != null && !userScheduleKeys.isEmpty()) {
+            redisTemplate.delete(userScheduleKeys);
+        }
+        Set<String> activeKeys = redisTemplate.keys("queue:active:*");
+        if (activeKeys != null && !activeKeys.isEmpty()) {
+            redisTemplate.delete(activeKeys);
+        }
+        Set<String> waitingKeys = redisTemplate.keys("queue:waiting:*");
+        if (waitingKeys != null && !waitingKeys.isEmpty()) {
+            redisTemplate.delete(waitingKeys);
+        }
+    }
+
 
 
 
@@ -200,4 +225,6 @@ public class RedisQueueTokenRepository implements QueueTokenRepository {
         redisTemplate.expireAt(tokenInfoKey(queueToken.getToken()), expiresInstant);
         redisTemplate.expireAt(userSchedule, expiresInstant);
     }
+
+
 }

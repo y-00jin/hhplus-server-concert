@@ -39,6 +39,16 @@ public class SeatJpaRepository implements SeatRepository {
     }
 
     @Override
+    public Optional<Seat> findByConcertSchedule_ScheduleIdAndSeatNumberForUpdate(Long scheduleId, int seatNumber) {
+        return seatRepository.findByConcertSchedule_ScheduleIdAndSeatNumberForUpdate(scheduleId, seatNumber).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<Seat> findBySeatIdForUpdate(Long seatId) {
+        return seatRepository.findBySeatIdForUpdate(seatId).map(this::toDomain);
+    }
+
+    @Override
     public Seat save(Seat seat) {
         SeatEntity saved = seatRepository.save(toEntity(seat));
         return toDomain(saved);

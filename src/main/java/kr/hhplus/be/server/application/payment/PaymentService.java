@@ -23,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-@Transactional(readOnly = true)
 @RequiredArgsConstructor
 @Service
 public class PaymentService {   // 좌석 예약 서비스
@@ -88,7 +87,8 @@ public class PaymentService {   // 좌석 예약 서비스
      * # MethodName : validateSeat
      **/
     private Seat validateSeat(Long seatId) {
-        return seatRepository.findById(seatId)
+        // 결제 시도 시 비관적 락으로 좌석 row 락 획득
+        return seatRepository.findBySeatIdForUpdate(seatId)
                 .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "좌석 정보("+seatId+")를 찾을 수 없습니다."));
     }
 

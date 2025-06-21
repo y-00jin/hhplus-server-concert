@@ -19,6 +19,9 @@ public enum ErrorCode {
     // 405 Method Not Allowed
     METHOD_NOT_ALLOWED(40500, "허용되지 않은 HTTP 메서드입니다", HttpStatus.METHOD_NOT_ALLOWED),
 
+    // 409 Conflict
+    CONFLICT(40900, "요청이 서버 상태와 충돌했습니다", HttpStatus.CONFLICT),
+
     // 500 Internal Server Error
     INTERNAL_SERVER_ERROR(50000, "서버 오류가 발생했습니다", HttpStatus.INTERNAL_SERVER_ERROR),
     DB_ERROR(50001, "데이터베이스 처리 중 오류가 발생했습니다", HttpStatus.INTERNAL_SERVER_ERROR),

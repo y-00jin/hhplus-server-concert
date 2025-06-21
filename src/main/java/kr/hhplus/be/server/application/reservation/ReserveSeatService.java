@@ -32,29 +32,17 @@ public class ReserveSeatService {   // 좌석 예약 서비스
     // 임시예약 만료 시간
     private static final int RESERVATION_TIMEOUT_MINUTES = 5;
 
+    @Transactional
     // 좌석 예약 메인 진입점
     public SeatReservation reserveSeat(Long userId, LocalDate concertDate, int seatNumber) {
 
-        // 1. 검증 단계
+        // 검증 단계
         User user = validateUser(userId);
         ConcertSchedule schedule = validateSchedule(concertDate);
         QueueToken queueToken = validateQueueToken(userId, schedule.getScheduleId());
 
+        return reserveSeatTransactional(user.getUserId(), schedule.getScheduleId(), seatNumber);
 
-        // 2. 분산락 - 데드락 등의 문제를 줄이기 위해 트랜잭션 바깥에서 처리
-        String lockKey = "seat-lock:" + schedule.getScheduleId() + ":" + seatNumber;
-        String lockValue = UUID.randomUUID().toString();
-        if (!distributedLockRepository.tryLock(lockKey, lockValue, 10_000)) {
-            throw new ApiException(ErrorCode.FORBIDDEN, "동일 좌석("+seatNumber+")에 대한 예약이 이미 진행 중입니다. 잠시 후 다시 시도해주세요.");
-        }
-
-        try {
-            // 3. 좌석 임시예약 처리 (트랜잭션)
-            return reserveSeatTransactional(user.getUserId(), schedule.getScheduleId(), seatNumber);
-        } finally {
-            // 4. 락 해제
-            distributedLockRepository.unlock(lockKey, lockValue);
-        }
     }
 
 
@@ -101,8 +89,8 @@ public class ReserveSeatService {   // 좌석 예약 서비스
     @Transactional
     public SeatReservation reserveSeatTransactional(Long userId, Long scheduleId, int seatNumber) {
 
-        // 좌석 조회
-        Seat seat = seatRepository.findByConcertSchedule_ScheduleIdAndSeatNumber(scheduleId, seatNumber)
+        // 비관적 락으로 해당 좌석 row select
+        Seat seat = seatRepository.findByConcertSchedule_ScheduleIdAndSeatNumberForUpdate(scheduleId, seatNumber)
                 .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "선택한 좌석("+ seatNumber +")은 존재하지 않습니다."));
 
         // 만료된 임시예약 해제 (좌석 상태 갱신)

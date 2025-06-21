@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 
-@Transactional(readOnly = true)
 @RequiredArgsConstructor
 @Service
 public class ConcertService {
