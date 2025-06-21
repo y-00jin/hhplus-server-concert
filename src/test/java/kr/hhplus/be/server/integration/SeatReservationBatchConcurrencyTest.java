@@ -1,6 +1,9 @@
 package kr.hhplus.be.server.integration;
 
+import kr.hhplus.be.server.application.batch.SeatReservationBatch;
+import kr.hhplus.be.server.application.payment.PaymentService;
 import kr.hhplus.be.server.domain.concert.*;
+import kr.hhplus.be.server.domain.payment.PaymentRepository;
 import kr.hhplus.be.server.domain.queue.QueueStatus;
 import kr.hhplus.be.server.domain.queue.QueueToken;
 import kr.hhplus.be.server.domain.queue.QueueTokenRepository;
@@ -8,6 +11,8 @@ import kr.hhplus.be.server.domain.reservation.ReservationStatus;
 import kr.hhplus.be.server.domain.reservation.SeatReservation;
 import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
 import kr.hhplus.be.server.domain.user.User;
+import kr.hhplus.be.server.domain.user.UserBalance;
+import kr.hhplus.be.server.domain.user.UserBalanceRepository;
 import kr.hhplus.be.server.domain.user.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
@@ -15,7 +20,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.dao.OptimisticLockingFailureException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -40,6 +44,15 @@ public class SeatReservationBatchConcurrencyTest {
     QueueTokenRepository queueTokenRepository;
     @Autowired
     SeatReservationRepository seatReservationRepository;
+    @Autowired
+    PaymentRepository paymentRepository;
+    @Autowired
+    UserBalanceRepository userBalanceRepository;
+
+    @Autowired
+    PaymentService paymentService;
+    @Autowired
+    SeatReservationBatch seatReservationBatch;
 
     private Long userId;
     private Long scheduleId;
@@ -48,11 +61,12 @@ public class SeatReservationBatchConcurrencyTest {
 
     @AfterEach
     void cleanUp() {
+        paymentRepository.deleteAllForTest();
         seatReservationRepository.deleteAllForTest();
+        userBalanceRepository.deleteAllForTest();
         seatRepository.deleteAllForTest();
         scheduleRepository.deleteAllForTest();
         userRepository.deleteAllForTest();
-        queueTokenRepository.deleteAllForTest();
     }
 
     @BeforeEach
@@ -61,6 +75,9 @@ public class SeatReservationBatchConcurrencyTest {
 
         // 사용자 등록
         userId = userRepository.save(new User(null, UUID.randomUUID().toString(), "test@email.com", "pw", "사용자1", now, now)).getUserId();
+
+        // 포인트 충전
+        userBalanceRepository.save(UserBalance.charge(userId, 100000L, 0L));
 
         // 콘서트 일정 및 좌석 등록 (좌석은 임시 예약 상태로)
         scheduleId = scheduleRepository.save(new ConcertSchedule(null, LocalDate.of(2025, 7, 1), now, now)).getScheduleId();
@@ -76,7 +93,7 @@ public class SeatReservationBatchConcurrencyTest {
 
         // 예약 생성 (TEMP_RESERVED & 만료시각 지난 예약 1개 생성)
         LocalDateTime expiredAt = now.minusMinutes(1);  // 만료 시간 (현재 시간 1분전)
-        LocalDateTime createdAt = now.minusMinutes(6);    // 생성 시간 (5분전)
+        LocalDateTime createdAt = now.minusMinutes(6);  // 생성 시간 (5분전)
 
         SeatReservation reservation = seatReservationRepository.save(
                 new SeatReservation(null, userId, seatId, ReservationStatus.TEMP_RESERVED, expiredAt, createdAt, createdAt)
@@ -90,17 +107,9 @@ public class SeatReservationBatchConcurrencyTest {
         // 1번 스레드: 예약 만료 상태로 변경
         executor.execute(() -> {
             try {
-                SeatReservation target = seatReservationRepository.findById(reservationId).orElseThrow();
-                target.expireReservation();             // 상태값 변경
-                seatReservationRepository.save(target); // @Version 체크
-
-                Seat seat = seatRepository.findById(reservation.getSeatId()).orElseThrow();
-                if (seat.getStatus() == SeatStatus.TEMP_RESERVED) {
-                    seat.releaseAssignment();
-                    seatRepository.save(seat);
-                }
-            } catch (OptimisticLockingFailureException e) {
-                log.error("------- 배치 OptimisticLock 충돌 발생");
+                seatReservationBatch.expireReservationAndSeat(reservation);
+            } catch (Exception e) {
+                log.error("------- 배치 비관적락 예외 발생", e);
             } finally {
                 latch.countDown();
             }
@@ -109,15 +118,9 @@ public class SeatReservationBatchConcurrencyTest {
         // 2번 스레드: 동시에 유저가 결제 확정 처리
         executor.execute(() -> {
             try {
-                SeatReservation target = seatReservationRepository.findById(reservationId).orElseThrow();
-                target.confirmReservation(); // 상태값 예약 확정으로 변경
-                seatReservationRepository.save(target); // @Version 체크
-
-                Seat seat = seatRepository.findById(seatId).orElseThrow();
-                seat.confirmReservation();
-                seatRepository.save(seat);
-            } catch (OptimisticLockingFailureException e) {
-                log.error("------- 결제 OptimisticLock 충돌 발생");
+                paymentService.payment(userId, reservationId);
+            } catch (Exception e) {
+                log.error("------- 결제 비관적락 예외 발생", e);
             } finally {
                 latch.countDown();
             }
@@ -125,11 +128,9 @@ public class SeatReservationBatchConcurrencyTest {
 
         latch.await();  // 두 스레드 모두 끝날 때까지 대기
 
-
         // then
         SeatReservation finalReservation = seatReservationRepository.findById(reservationId).orElseThrow();
         Seat finalSeat = seatRepository.findById(seatId).orElseThrow();
-
 
         // 둘 중 하나만 true여야 함 (둘 다 TEMP_RESERVED는 불가능)
         boolean isReservationExpired = finalReservation.getStatus() == ReservationStatus.EXPIRED;       // 예약 만료
@@ -142,14 +143,7 @@ public class SeatReservationBatchConcurrencyTest {
         assertThat(isSeatFree ^ isSeatConfirmed).isTrue();
 
         // 2. 둘 다 TEMP_RESERVED가 아니고, 하나는 만료, 하나는 확정이어야 함
-        assertThat(
-                (isReservationExpired && isSeatFree) ||
-                        (isReservationConfirmed && isSeatConfirmed)
-        ).isTrue();
-
-        // 3. version 값이 1 이상으로 올라갔는지(낙관적락 동작)
-//        assertThat(finalReservation.getVersion()).isGreaterThanOrEqualTo(1L);
-//        assertThat(finalSeat.getVersion()).isGreaterThanOrEqualTo(1L);
+        assertThat((isReservationExpired && isSeatFree) || (isReservationConfirmed && isSeatConfirmed)).isTrue();
 
     }
 }
