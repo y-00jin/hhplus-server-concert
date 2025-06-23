@@ -7,8 +7,8 @@ import java.util.Optional;
 public interface SeatReservationRepository {
     SeatReservation save(SeatReservation seatReservation);
     Optional<SeatReservation> findById(Long reservationId);
+    Optional<SeatReservation> findByIdForUpdate(Long reservationId);    // lock
     Optional<SeatReservation> findByReservationIdAndUser_UserId(Long reservationId, Long userId);
     List<SeatReservation> findByStatusAndExpiredAtBefore(ReservationStatus status, LocalDateTime expiredAt);
-
     void deleteAllForTest();
 }

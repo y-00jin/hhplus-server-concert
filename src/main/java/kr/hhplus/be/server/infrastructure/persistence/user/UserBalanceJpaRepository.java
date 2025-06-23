@@ -26,6 +26,11 @@ public class UserBalanceJpaRepository implements UserBalanceRepository {
     }
 
     @Override
+    public Optional<UserBalance> findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(Long userId) {
+        return userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId).map(this::toDomain);
+    }
+
+    @Override
     public UserBalance save(UserBalance userBalance) {
         UserBalanceEntity saved = userBalanceRepository.save(toEntity(userBalance));
         return toDomain(saved);
@@ -35,6 +40,7 @@ public class UserBalanceJpaRepository implements UserBalanceRepository {
     public void deleteAllForTest() {
         userBalanceRepository.deleteAll();
     }
+
 
     private UserBalanceEntity toEntity(UserBalance domain) {
         // 1. id로 User, Seat 객체 조회

@@ -53,4 +53,6 @@ public interface QueueTokenRepository {
      * # MethodName : findFirstWaitingTokenId
      **/
     Optional<String> findFirstWaitingTokenId(Long scheduleId);
+
+    void deleteAllForTest();
 }

@@ -1,6 +1,10 @@
 package kr.hhplus.be.server.domain.reservation;
 
+import kr.hhplus.be.server.common.exception.ApiException;
+import kr.hhplus.be.server.common.exception.ErrorCode;
+
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 public class  SeatReservation {
 
@@ -64,4 +68,21 @@ public class  SeatReservation {
         this.status = ReservationStatus.EXPIRED;
         this.updatedAt = LocalDateTime.now();
     }
+
+    /**
+     * # Method설명 : 주어진 사용자ID가 이 예약의 소유자인지 확인
+     * # MethodName : validateOwner
+     **/
+    public void validateOwner(Long userId){
+        if (!Objects.equals(this.userId, userId)) {
+            throw new ApiException(ErrorCode.FORBIDDEN, String.format("예약 정보(%d)는 사용자 ID(%d)의 소유가 아닙니다.", reservationId, userId));
+        }
+    }
+
+    public void validateAvailableToPay() {
+        if (this.status != ReservationStatus.TEMP_RESERVED || this.expiredAt.isBefore(LocalDateTime.now())) {
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, String.format("결제할 수 없는 예약 정보(%d)입니다.", this.reservationId));
+        }
+    }
+
 }

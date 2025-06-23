@@ -99,8 +99,7 @@ public class UserServiceTest {
                 null,
                 null
         );
-        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId))
-                .thenReturn(Optional.of(current));
+        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId)).thenReturn(Optional.of(current));
         when(userBalanceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         // when
@@ -155,8 +154,7 @@ public class UserServiceTest {
                 null,
                 null
         );
-        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId))
-                .thenReturn(Optional.of(current));
+        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId)).thenReturn(Optional.of(current));
         when(userBalanceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         // when
@@ -210,7 +208,7 @@ public class UserServiceTest {
                 null,
                 null
         );
-        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)).thenReturn(Optional.of(current));
+        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId)).thenReturn(Optional.of(current));
 
         // when & then
         assertThatThrownBy(() -> userService.useBalance(userId, 50000L))
@@ -218,6 +216,6 @@ public class UserServiceTest {
                         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE)
                 );
         verify(userRepository, times(1)).findById(userId);
-        verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId);
+        verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId);
     }
 }

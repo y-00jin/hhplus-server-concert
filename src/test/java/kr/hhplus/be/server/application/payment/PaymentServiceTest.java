@@ -66,10 +66,10 @@ class PaymentServiceTest {
         SeatReservation reservation = new SeatReservation(reservationId, userId, seatId, ReservationStatus.TEMP_RESERVED, LocalDateTime.now().plusMinutes(10), LocalDateTime.now(), LocalDateTime.now());
         Payment payment = Payment.create(userId, reservationId, price, PaymentStatus.SUCCESS);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(seatReservationRepository.findByReservationIdAndUser_UserId(reservationId, userId)).thenReturn(Optional.of(reservation));
-        when(seatRepository.findById(seatId)).thenReturn(Optional.of(seat));
-        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId))
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));    // 사용자 조회
+        when(seatReservationRepository.findByIdForUpdate(reservationId)).thenReturn(Optional.of(reservation));  // 예약 조회
+        when(seatRepository.findBySeatIdForUpdate(seatId)).thenReturn(Optional.of(seat));   // 좌석 조회
+        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId))    // 잔액 조회
                 .thenReturn(Optional.of(new UserBalance(null, userId, 0L, UserBalanceType.CHARGE, currentBalance, null, null)));
         when(userBalanceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(paymentRepository.save(any())).thenReturn(payment);
@@ -117,7 +117,7 @@ class PaymentServiceTest {
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(mock(User.class)));
-        when(seatReservationRepository.findByReservationIdAndUser_UserId(reservationId, userId))
+        when(seatReservationRepository.findByIdForUpdate(reservationId))
                 .thenReturn(Optional.of(expiredReservation));
 
         // then
