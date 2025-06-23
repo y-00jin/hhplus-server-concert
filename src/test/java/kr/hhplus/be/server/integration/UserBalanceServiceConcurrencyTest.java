@@ -49,10 +49,16 @@ public class UserBalanceServiceConcurrencyTest {
         userService.chargeBalance(userId, 10000L);
     }
 
+    @AfterEach
+    void cleanUp() {
+        userBalanceRepository.deleteAllForTest();
+        userRepository.deleteAllForTest();
+    }
+
     @Test
     void 동시_잔액사용_결제_테스트() throws Exception {
         // given
-        int threadCount = 2;
+        int threadCount = 10;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         CountDownLatch latch = new CountDownLatch(threadCount);
         List<Boolean> results = new ArrayList<>();
@@ -85,5 +91,44 @@ public class UserBalanceServiceConcurrencyTest {
         // 최종 잔액은 확인
         UserBalance balance = userService.getCurrentBalance(userId);
         assertThat(balance.getCurrentBalance()).isEqualTo(3000L);
+    }
+
+
+    @Test
+    void 동시_잔액충전_테스트() throws Exception {
+        // given
+        int threadCount = 10;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+        List<Boolean> results = new ArrayList<>();
+
+        // when
+        for (int i = 0; i < threadCount; i++) {
+            executor.submit(() -> {
+                try {
+                    UserBalance result = userService.chargeBalance(userId, 10000L);
+                    results.add(true);
+                    log.info("포인트 충전 성공 - 사용 후 잔액 = {}", result.getCurrentBalance());
+                } catch (Exception e) {
+                    results.add(false);
+                    log.error("포인트 충전 실패 ");
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+        latch.await();
+
+        // then
+        // 한 번만 성공, 나머지는 실패
+        long successCount = results.stream().filter(r -> r).count();
+        long failCount = results.stream().filter(r -> !r).count();
+
+        assertThat(successCount).isEqualTo(1);
+        assertThat(failCount).isEqualTo(threadCount - successCount);
+
+        // 최종 잔액은 확인
+        UserBalance balance = userService.getCurrentBalance(userId);
+        assertThat(balance.getCurrentBalance()).isEqualTo(10000L * (successCount+1));
     }
 }
