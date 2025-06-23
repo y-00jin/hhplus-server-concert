@@ -9,7 +9,6 @@ import kr.hhplus.be.server.domain.payment.Payment;
 import kr.hhplus.be.server.domain.payment.PaymentRepository;
 import kr.hhplus.be.server.domain.payment.PaymentStatus;
 import kr.hhplus.be.server.domain.queue.QueueTokenRepository;
-import kr.hhplus.be.server.domain.reservation.ReservationStatus;
 import kr.hhplus.be.server.domain.reservation.SeatReservation;
 import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
 import kr.hhplus.be.server.domain.user.User;
@@ -20,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -72,13 +70,17 @@ public class PaymentService {   // 좌석 예약 서비스
      * # MethodName : validateSeatReservation
      **/
     private SeatReservation validateSeatReservation(Long reservationId, Long userId) {
-        SeatReservation seatReservation = seatReservationRepository.findByReservationIdAndUser_UserId(reservationId, userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "예약 정보("+reservationId+")를 찾을 수 없습니다."));
 
-        // 임시 예약 상태가 아님 (이미 예약 완료, 취소, 만료 등)
-        if (seatReservation.getStatus() != ReservationStatus.TEMP_RESERVED || seatReservation.getExpiredAt().isBefore(LocalDateTime.now())) {
-            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "결제할 수 없는 예약 정보("+reservationId+")입니다.");
-        }
+        // 예약 lock 획득
+        SeatReservation seatReservation = seatReservationRepository.findByIdForUpdate(reservationId)
+                .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, String.format("예약 정보(%d)를 찾을 수 없습니다.", reservationId)));
+
+        // 예약자 검증
+        seatReservation.validateOwner(userId);
+
+        // 결제 가능 상태 검증 (임시 예약 상태가 아님 : 이미 예약 완료, 취소, 만료 등)
+        seatReservation.validateAvailableToPay();
+
         return seatReservation;
     }
 
@@ -97,11 +99,13 @@ public class PaymentService {   // 좌석 예약 서비스
      * # MethodName : useBalance
      **/
     private void useBalance(User user, Seat seat, Long userId) {
-        // 현재 잔액 조회
+
+        // 현재 잔액 조회 (lock 획득)
         long currentBalance = userBalanceRepository
-                .findTopByUser_UserIdOrderByBalanceHistoryIdDesc(userId)
+                .findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId)
                 .map(UserBalance::getCurrentBalance)
                 .orElse(0L);
+
         long amount = seat.getPrice();  // 콘서트 좌석 금액
         UserBalance userBalance = UserBalance.use(user.getUserId(), amount, currentBalance);
         userBalanceRepository.save(userBalance);    // 잔액 사용 내역 생성
@@ -112,11 +116,10 @@ public class PaymentService {   // 좌석 예약 서비스
      * # MethodName : savePayment
      **/
     private Payment savePayment(User user, SeatReservation seatReservation, Seat seat) {
-        long amount = seat.getPrice();  // 콘서트 좌석 금액
         Payment payment = Payment.create(
                 user.getUserId(),
                 seatReservation.getReservationId(),
-                amount,
+                seat.getPrice(),    // 콘서트 좌석 금액
                 PaymentStatus.SUCCESS
         );
         return paymentRepository.save(payment); // 결제 내역 생성

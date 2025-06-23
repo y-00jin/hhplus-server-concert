@@ -41,6 +41,11 @@ public class SeatReservationJpaRepository implements SeatReservationRepository {
     }
 
     @Override
+    public Optional<SeatReservation> findByIdForUpdate(Long reservationId) {
+        return seatReservationRepository.findByIdForUpdate(reservationId).map(this::toDomain);
+    }
+
+    @Override
     public Optional<SeatReservation> findByReservationIdAndUser_UserId(Long reservationId, Long userId) {
         return seatReservationRepository.findByReservationIdAndUser_UserId(reservationId, userId).map(this::toDomain);
     }
