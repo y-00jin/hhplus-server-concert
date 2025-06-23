@@ -40,8 +40,6 @@ class ReserveSeatServiceTest {
     UserRepository userRepository;
     @Mock
     QueueTokenRepository queueTokenRepository;
-    @Mock
-    DistributedLockRepository distributedLockRepository;
 
     @BeforeEach
     void setUp() {
@@ -67,19 +65,13 @@ class ReserveSeatServiceTest {
         when(schedule.getScheduleId()).thenReturn(100L);
         when(schedule.getConcertDate()).thenReturn(concertDate);
 
-        when(queueTokenRepository.findTokenIdByUserIdAndScheduleId(eq(userId), eq(100L)))
-                .thenReturn(Optional.of("queue-token-id"));
-        when(queueTokenRepository.findQueueTokenByTokenId("queue-token-id"))
-                .thenReturn(Optional.of(queueToken));
+        when(queueTokenRepository.findTokenIdByUserIdAndScheduleId(eq(userId), eq(100L))).thenReturn(Optional.of("queue-token-id"));
+        when(queueTokenRepository.findQueueTokenByTokenId("queue-token-id")).thenReturn(Optional.of(queueToken));
         when(queueToken.isExpired()).thenReturn(false);
         when(queueToken.isActive()).thenReturn(true);
 
-        // Lock 획득 성공
-        when(distributedLockRepository.tryLock(anyString(), anyString(), anyLong())).thenReturn(true);
-
-        // Seat 조회 및 임시예약 가능
-        when(seatRepository.findByConcertSchedule_ScheduleIdAndSeatNumber(100L, seatNumber))
-                .thenReturn(Optional.of(seat));
+        // Seat 조회 (비관적락)
+        when(seatRepository.findByConcertSchedule_ScheduleIdAndSeatNumberForUpdate(100L, seatNumber)).thenReturn(Optional.of(seat));
         when(seat.getStatus()).thenReturn(SeatStatus.TEMP_RESERVED);
         when(seat.isExpired(anyInt())).thenReturn(false);
         when(seat.isAvailable(anyInt())).thenReturn(true);
@@ -97,8 +89,6 @@ class ReserveSeatServiceTest {
         assertThat(result).isNotNull();
         verify(seatRepository, times(1)).save(seat);
         verify(reservationRepository, times(1)).save(any(SeatReservation.class));
-        verify(distributedLockRepository, times(1)).tryLock(anyString(), anyString(), anyLong());
-        verify(distributedLockRepository, times(1)).unlock(anyString(), anyString());
     }
 
     @Test
@@ -151,36 +141,4 @@ class ReserveSeatServiceTest {
                 .hasMessageContaining("대기열 토큰이 존재하지 않습니다");
     }
 
-    @Test
-    @DisplayName("좌석 예약 실패 - 락 획득 실패")
-    void reserveSeat_lockFail() {
-        // given
-        Long userId = 1L;
-        LocalDate concertDate = LocalDate.now().plusDays(1);
-        int seatNumber = 99;
-        User user = mock(User.class);
-        ConcertSchedule schedule = mock(ConcertSchedule.class);
-
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(scheduleRepository.findByConcertDate(concertDate)).thenReturn(Optional.of(schedule));
-        when(schedule.getScheduleId()).thenReturn(77L);
-        when(schedule.getConcertDate()).thenReturn(concertDate);
-
-        when(queueTokenRepository.findTokenIdByUserIdAndScheduleId(userId, 77L))
-                .thenReturn(Optional.of("token77"));
-        QueueToken queueToken = mock(QueueToken.class);
-        when(queueTokenRepository.findQueueTokenByTokenId("token77"))
-                .thenReturn(Optional.of(queueToken));
-        when(queueToken.isExpired()).thenReturn(false);
-        when(queueToken.isActive()).thenReturn(true);
-
-        // 락 획득 실패
-        when(distributedLockRepository.tryLock(anyString(), anyString(), anyLong()))
-                .thenReturn(false);
-
-        // when & then
-        assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, concertDate, seatNumber))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("예약이 이미 진행 중입니다");
-    }
 }
