@@ -41,11 +41,20 @@ public class SeatReservationBatch {
 
     @Transactional
     public void expireReservationAndSeat(SeatReservation reservation) {
-        if (reservation.getStatus() != ReservationStatus.TEMP_RESERVED) {
+
+        // 1. 비관적 락으로 예약 엔티티 다시 조회
+        Optional<SeatReservation> lockedReservationOpt = seatReservationRepository.findByIdForUpdate(reservation.getReservationId());
+        if(lockedReservationOpt.isEmpty()){
+            log.warn("예약 정보 없음: {}", reservation.getReservationId());
             return;
         }
 
-        // 1. 좌석에 비관적 락 걸어서 select (seatId 사용)
+        SeatReservation lockedReservation = lockedReservationOpt.get();
+        if (lockedReservation.getStatus() != ReservationStatus.TEMP_RESERVED) {
+            return;
+        }
+
+        // 2. 좌석에 비관적 락 걸어서 select (seatId 사용)
         Optional<Seat> seatOpt = seatRepository.findBySeatIdForUpdate(reservation.getSeatId());
         if (seatOpt.isEmpty()) {
             log.warn("좌석 없음: {}", reservation.getSeatId());
@@ -53,7 +62,7 @@ public class SeatReservationBatch {
         }
         Seat seat = seatOpt.get();
 
-        // 2. 상태 체크 및 만료 처리
+        // 3. 상태 체크 및 만료 처리
         if (seat.getStatus() == SeatStatus.TEMP_RESERVED) {
             // 예약 만료 처리
             reservation.expireReservation();
