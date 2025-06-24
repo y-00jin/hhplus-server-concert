@@ -40,6 +40,8 @@ class ReserveSeatServiceTest {
     UserRepository userRepository;
     @Mock
     QueueTokenRepository queueTokenRepository;
+    @Mock
+    DistributedLockRepository distributedLockRepository;
 
     @BeforeEach
     void setUp() {
@@ -70,8 +72,13 @@ class ReserveSeatServiceTest {
         when(queueToken.isExpired()).thenReturn(false);
         when(queueToken.isActive()).thenReturn(true);
 
-        // Seat 조회 (비관적락)
-        when(seatRepository.findByConcertSchedule_ScheduleIdAndSeatNumberForUpdate(100L, seatNumber)).thenReturn(Optional.of(seat));
+        // Lock 획득 성공
+        when(distributedLockRepository.tryLock(anyString(), anyString(), anyLong())).thenReturn(true);
+
+        // Seat 조회 및 임시예약 가능
+        when(seatRepository.findByConcertSchedule_ScheduleIdAndSeatNumber(100L, seatNumber)).thenReturn(Optional.of(seat));
+        // when(seatRepository.findByConcertSchedule_ScheduleIdAndSeatNumberForUpdate(100L, seatNumber)).thenReturn(Optional.of(seat)); // Seat 조회 (비관적락)
+
         when(seat.getStatus()).thenReturn(SeatStatus.TEMP_RESERVED);
         when(seat.isExpired(anyInt())).thenReturn(false);
         when(seat.isAvailable(anyInt())).thenReturn(true);

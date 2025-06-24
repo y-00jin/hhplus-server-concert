@@ -11,6 +11,7 @@ import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
 import kr.hhplus.be.server.domain.user.User;
 import kr.hhplus.be.server.domain.user.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,13 +19,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 
 @SpringBootTest
@@ -47,6 +49,15 @@ public class ReserveSeatServiceConcurrencyTest {
     @Autowired
     SeatReservationRepository seatReservationRepository;
 
+    @AfterEach
+    void cleanUp() {
+        seatReservationRepository.deleteAllForTest();
+        seatRepository.deleteAllForTest();
+        scheduleRepository.deleteAllForTest();
+        userRepository.deleteAllForTest();
+        queueTokenRepository.deleteAllForTest();
+    }
+
     @Test
     void 동시에_두_명이_같은_좌석을_예약_시도하면_한_명만_성공() throws Exception {
 
@@ -57,7 +68,7 @@ public class ReserveSeatServiceConcurrencyTest {
         Long userId1 = userRepository.save(new User(null, UUID.randomUUID().toString(), "test1@email.com", "pw", "사용자1", now, now)).getUserId();
         Long userId2 = userRepository.save(new User(null, UUID.randomUUID().toString(), "test2@email.com", "pw", "사용자2", now, now)).getUserId();
 
-        LocalDate concertDate = LocalDate.of(2025, 6, 23);
+        LocalDate concertDate = LocalDate.now().plusDays(1);
         int seatNumber = 1;
 
         // 콘서트 일정 및 좌석 등록
@@ -68,13 +79,11 @@ public class ReserveSeatServiceConcurrencyTest {
         queueService.issueQueueToken(userId1, scheduleId);
         queueService.issueQueueToken(userId2, scheduleId);
 
-        int threadCount = 2; // 동시 예약 시도
+        int threadCount = 5; // 동시 예약 시도
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         CountDownLatch latch = new CountDownLatch(threadCount);
+        List<Throwable> exceptions = Collections.synchronizedList(new ArrayList<>());
 
-        List<Throwable> exceptions = new ArrayList<>();
-
-        // when
         for (int i = 0; i < threadCount; i++) {
             final Long userId = (i == 0) ? userId1 : userId2;
             executor.submit(() -> {
@@ -90,13 +99,16 @@ public class ReserveSeatServiceConcurrencyTest {
             });
         }
 
-        latch.await(); // 두 스레드가 모두 종료될 때까지 대기
+        latch.await(); // 스레드가 모두 종료될 때까지 대기
 
         // then
-        // 성공한 예약은 1건
-        assertThat(exceptions.size()).isEqualTo(1); // 실패 수
+        assertThat(exceptions.size()).isEqualTo(threadCount - 1); // 실패 수
         Throwable ex = exceptions.get(0);
         assertThat(ex).isInstanceOf(ApiException.class);
-        assertThat(((ApiException) ex).getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
+        ErrorCode errorCode = ((ApiException) ex).getErrorCode();
+        assertThat(errorCode == ErrorCode.FORBIDDEN || errorCode == ErrorCode.INVALID_INPUT_VALUE).isTrue();
     }
 }
+
+
+
