@@ -27,6 +27,9 @@ spring:
     redis:
       host: localhost
       port: 6379
+  # 캐시 타입 - redis
+  cache:
+    type: redis
 
 ---
 spring.config.activate.on-profile: local, test

@@ -31,18 +31,34 @@ public class ReserveSeatService {   // 좌석 예약 서비스
 
     // 임시예약 만료 시간
     private static final int RESERVATION_TIMEOUT_MINUTES = 5;
+    private static final long SEAT_LOCK_TIMEOUT_MILLIS = 15000;
 
-    @Transactional
-    // 좌석 예약 메인 진입점
+    /**
+     * # Method설명 : 좌석 예약
+     * # MethodName : reserveSeat
+     **/
     public SeatReservation reserveSeat(Long userId, LocalDate concertDate, int seatNumber) {
 
         // 검증 단계
-        User user = validateUser(userId);
-        ConcertSchedule schedule = validateSchedule(concertDate);
-        QueueToken queueToken = validateQueueToken(userId, schedule.getScheduleId());
+        User user = validateUser(userId);   // 사용자
+        ConcertSchedule schedule = validateSchedule(concertDate);   // 일정
+        Seat seat = validateSeat(schedule.getScheduleId(), seatNumber); // 좌석
+        validateQueueToken(userId, schedule.getScheduleId());   // 토큰
 
-        return reserveSeatTransactional(user.getUserId(), schedule.getScheduleId(), seatNumber);
+        // 분산 락
+        String lockKey = "seat-lock:" + seat.getSeatId();
+        String lockValue = UUID.randomUUID().toString();
+        if (!distributedLockRepository.tryLock(lockKey, lockValue, SEAT_LOCK_TIMEOUT_MILLIS)) {
+            throw new ApiException(ErrorCode.FORBIDDEN, "동일 좌석("+seatNumber+")에 대한 예약이 이미 진행 중입니다. 잠시 후 다시 시도해주세요.");
+        }
 
+        try {
+            // 3. 좌석 임시예약 처리 (트랜잭션)
+            return reserveSeatTransactional(user.getUserId(), seatNumber, seat);
+        } finally {
+            // 4. 락 해제
+            distributedLockRepository.unlock(lockKey, lockValue);
+        }
     }
 
 
@@ -77,21 +93,30 @@ public class ReserveSeatService {   // 좌석 예약 서비스
         if (tokenIdOpt.isEmpty()) {
             throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "사용자 ID("+userId+")로 발급된 대기열 토큰이 존재하지 않습니다.");
         }
-        QueueToken queueToken = queueTokenRepository.findQueueTokenByTokenId(tokenIdOpt.get())
-                .orElseThrow(() -> new ApiException(ErrorCode.INVALID_INPUT_VALUE, "유효하지 않은 대기열 토큰입니다. " + tokenIdOpt.get()));
+
+        QueueToken queueToken = queueTokenRepository.findQueueTokenByTokenId(tokenIdOpt.get()).orElseThrow(() -> new ApiException(ErrorCode.INVALID_INPUT_VALUE, "유효하지 않은 대기열 토큰입니다. " + tokenIdOpt.get()));
         if (queueToken.isExpired() || !queueToken.isActive()) {
             throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, "대기열 토큰이 만료되었거나 예약 가능 상태가 아닙니다.");
         }
         return queueToken;
     }
 
-
-    @Transactional
-    public SeatReservation reserveSeatTransactional(Long userId, Long scheduleId, int seatNumber) {
-
-        // 비관적 락으로 해당 좌석 row select
-        Seat seat = seatRepository.findByConcertSchedule_ScheduleIdAndSeatNumberForUpdate(scheduleId, seatNumber)
+    /**
+     * # Method설명 : 좌석 검증
+     * # MethodName : validateSeat
+     **/
+    private Seat validateSeat(Long scheduleId, int seatNumber){
+        return seatRepository.findByConcertSchedule_ScheduleIdAndSeatNumber(scheduleId, seatNumber)
                 .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "선택한 좌석("+ seatNumber +")은 존재하지 않습니다."));
+    }
+
+
+    /**
+     * # Method설명 : 예약 트랜잭션
+     * # MethodName : reserveSeatTransactional
+     **/
+    @Transactional
+    public SeatReservation reserveSeatTransactional(Long userId, int seatNumber, Seat seat) {
 
         // 만료된 임시예약 해제 (좌석 상태 갱신)
         if (seat.getStatus() == SeatStatus.TEMP_RESERVED && seat.isExpired(RESERVATION_TIMEOUT_MINUTES)) {
