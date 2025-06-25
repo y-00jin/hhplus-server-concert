@@ -57,6 +57,11 @@ public class SeatReservationJpaRepository implements SeatReservationRepository {
     }
 
     @Override
+    public Long findSeatIdById(Long reservationId) {
+        return seatReservationRepository.findSeatIdById(reservationId).orElse(0L);
+    }
+
+    @Override
     public void deleteAllForTest() {
         seatReservationRepository.deleteAll();
     }

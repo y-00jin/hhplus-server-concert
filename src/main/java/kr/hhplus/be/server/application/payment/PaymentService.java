@@ -5,6 +5,7 @@ import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
 import kr.hhplus.be.server.domain.concert.Seat;
 import kr.hhplus.be.server.domain.concert.SeatRepository;
+import kr.hhplus.be.server.domain.lock.DistributedLockRepository;
 import kr.hhplus.be.server.domain.payment.Payment;
 import kr.hhplus.be.server.domain.payment.PaymentRepository;
 import kr.hhplus.be.server.domain.payment.PaymentStatus;
@@ -19,7 +20,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Supplier;
 
 @RequiredArgsConstructor
 @Service
@@ -31,28 +33,111 @@ public class PaymentService {   // 좌석 예약 서비스
     private final UserBalanceRepository userBalanceRepository;
     private final SeatRepository seatRepository;
     private final QueueTokenRepository queueTokenRepository;
+    private final DistributedLockRepository distributedLockRepository;
+
+
+    private static final long LOCK_TIMEOUT_MILLIS = 15000;
+    private static final int MAX_RETRY = 10;
+    private static final long SLEEP_MILLIS = 200;
+
 
     /**
      * # Method설명 : 예약한 좌석 결제
      * # MethodName : payment
      **/
-    @Transactional
     public Payment payment(Long userId, Long reservationId) {
 
-        // 1. 검증 단계
-        User user = validateUser(userId);   // 사용자
-        SeatReservation seatReservation = validateSeatReservation(reservationId, userId);   // 예약 정보
-        Seat seat = validateSeat(seatReservation.getSeatId());  // 콘서트 좌석 (예약 내역의 좌석id로)
+        validateUser(userId);   // 사용자
+        Long seatId = seatReservationRepository.findSeatIdById(reservationId);  // lock-key에 쓰기위한 좌석 ID 조회
+        List<String> lockKeys = Arrays.asList(
+                "reservation-lock:" + reservationId,
+                "seat-lock:" + seatId,
+                "userBalance-lock:" + userId
+        );
 
-        // 2. 비즈니스 처리
-        useBalance(user, seat, userId); // 잔액 차감
-        Payment payment = savePayment(user, seatReservation, seat); // 결제 생성
-        confirmReservation(seatReservation); // 예약 확정
-        confirmSeat(seat); // 좌석 확정
+        return withMultiLock(lockKeys, () -> paymentTransactional(userId, reservationId, seatId));
 
-        // 3. 후처리
-        expireQueueToken(userId, seat.getScheduleId()); // 토큰 만료
-        return payment;
+    }
+
+
+    // 트랜잭션 내 결제 처리
+    @Transactional
+    protected Payment paymentTransactional(Long userId, Long reservationId, Long seatId) {
+//        try {
+            // 1. 검증 및 데이터 조회
+            SeatReservation seatReservation = validateSeatReservation(reservationId, userId);
+            Seat seat = validateSeat(seatId);
+            int amount = seat.getPrice();
+
+            // 2. 비즈니스 처리
+            useBalance(userId, amount);     // 잔액 차감
+            Payment payment = savePayment(userId, seatReservation.getReservationId(), amount); // 결제 생성
+            confirmReservation(seatReservation); // 예약 확정
+            confirmSeat(seat);                  // 좌석 확정
+
+            // 3. 후처리
+            expireQueueToken(userId, seat.getScheduleId());  // 토큰 만료
+            return payment;
+//        } catch (DataIntegrityViolationException e) {
+//            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, String.format("해당 예약(%d)은 이미 결제되었거나 결제가 불가능한 상태입니다.", reservationId));
+//        }
+    }
+
+
+    /**
+     * # Method설명 : 여러 분산락 순차적으로 획득
+     * # MethodName : withMultiLock
+     **/
+    private <T> T withMultiLock(List<String> lockKeys, Supplier<T> action) {
+        List<String> acquiredKeys = new ArrayList<>();  // 획득한 락 key 리스트
+        List<String> lockValues = new ArrayList<>();    // 각 락의 고유 value (락 해제시 사용)
+        try {
+            // 각 key 별로 순서대로 락 획득 시도
+            for (String lockKey : lockKeys) {
+                String lockValue = UUID.randomUUID().toString();
+                boolean locked = false;
+                int tryCount = 0;
+
+                // 스핀락 방식으로 최대 MAX_RETRY번 재시도
+                while (!locked && tryCount < MAX_RETRY) {
+                    locked = distributedLockRepository.tryLock(lockKey, lockValue, LOCK_TIMEOUT_MILLIS);    // 락 획득
+                    if (!locked) {  // 락 획득 실패
+                        tryCount++;
+                        Thread.sleep(SLEEP_MILLIS);
+                    }
+                }
+                if (!locked) {  // 최종적으로 락 획득 실패
+                    releaseAllLocks(acquiredKeys, lockValues);  // 획득한 락 전체 해제
+                    throw new ApiException(ErrorCode.FORBIDDEN, "결제 요청이 많아 처리가 지연되고 있습니다. 잠시 후 다시 시도해 주세요.");
+                }
+                // 3. 획득한 락 리스트에 추가
+                acquiredKeys.add(lockKey);
+                lockValues.add(lockValue);
+            }
+            return action.get();    // 모든 락 획득 후 비즈니스 로직 실행
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            releaseAllLocks(acquiredKeys, lockValues);
+            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, "락 대기 중 인터럽트 발생");
+        } catch (RuntimeException e) {
+            releaseAllLocks(acquiredKeys, lockValues);
+            throw e;
+        } finally {
+            releaseAllLocks(acquiredKeys, lockValues);
+        }
+    }
+
+
+    /**
+     * # Method설명 : 락 전체 해제
+     * # MethodName : releaseAllLocks
+     **/
+    private void releaseAllLocks(List<String> lockKeys, List<String> lockValues) {
+        for (int i = 0; i < lockKeys.size(); i++) {
+            try {
+                distributedLockRepository.unlock(lockKeys.get(i), lockValues.get(i));
+            } catch (Exception ignore) {}
+        }
     }
 
 
@@ -72,7 +157,7 @@ public class PaymentService {   // 좌석 예약 서비스
     private SeatReservation validateSeatReservation(Long reservationId, Long userId) {
 
         // 예약 lock 획득
-        SeatReservation seatReservation = seatReservationRepository.findByIdForUpdate(reservationId)
+        SeatReservation seatReservation = seatReservationRepository.findById(reservationId)
                 .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, String.format("예약 정보(%d)를 찾을 수 없습니다.", reservationId)));
 
         // 예약자 검증
@@ -89,8 +174,7 @@ public class PaymentService {   // 좌석 예약 서비스
      * # MethodName : validateSeat
      **/
     private Seat validateSeat(Long seatId) {
-        // 결제 시도 시 비관적 락으로 좌석 row 락 획득
-        return seatRepository.findBySeatIdForUpdate(seatId)
+        return seatRepository.findById(seatId)
                 .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "좌석 정보("+seatId+")를 찾을 수 없습니다."));
     }
 
@@ -98,16 +182,11 @@ public class PaymentService {   // 좌석 예약 서비스
      * # Method설명 : 잔액 사용 내역 생성
      * # MethodName : useBalance
      **/
-    private void useBalance(User user, Seat seat, Long userId) {
+    private void useBalance(Long userId, int amount) {
 
         // 현재 잔액 조회 (lock 획득)
-        long currentBalance = userBalanceRepository
-                .findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId)
-                .map(UserBalance::getCurrentBalance)
-                .orElse(0L);
-
-        long amount = seat.getPrice();  // 콘서트 좌석 금액
-        UserBalance userBalance = UserBalance.use(user.getUserId(), amount, currentBalance);
+        long currentBalance = userBalanceRepository.findCurrentBalanceByUserId(userId);
+        UserBalance userBalance = UserBalance.use(userId, amount, currentBalance);
         userBalanceRepository.save(userBalance);    // 잔액 사용 내역 생성
     }
 
@@ -115,11 +194,11 @@ public class PaymentService {   // 좌석 예약 서비스
      * # Method설명 : 결제 내역 생성
      * # MethodName : savePayment
      **/
-    private Payment savePayment(User user, SeatReservation seatReservation, Seat seat) {
+    private Payment savePayment(Long userId, Long reservationId, int amount) {
         Payment payment = Payment.create(
-                user.getUserId(),
-                seatReservation.getReservationId(),
-                seat.getPrice(),    // 콘서트 좌석 금액
+                userId,
+                reservationId,
+                amount,    // 콘서트 좌석 금액
                 PaymentStatus.SUCCESS
         );
         return paymentRepository.save(payment); // 결제 내역 생성
