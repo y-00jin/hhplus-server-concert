@@ -33,7 +33,9 @@ public class ReserveSeatService {   // 좌석 예약 서비스
 
     // 임시예약 만료 시간
     private static final int RESERVATION_TIMEOUT_MINUTES = 5;
-    private static final long SEAT_LOCK_TIMEOUT_MILLIS = 30000;
+    private static final long LOCK_TIMEOUT_MILLIS = 15000; // 락 지속 시간
+    private static int MAX_RETRY = 10;   // 최대 시도 수
+    private static long SLEEP_MILLIS = 200;  // 대기 시간
 
     /**
      * # Method설명 : 좌석 예약
@@ -51,12 +53,10 @@ public class ReserveSeatService {   // 좌석 예약 서비스
         String lockKey = "seat-lock:" + seatId;   // 좌석 id로 락
         String lockValue = UUID.randomUUID().toString();
 
-        final int MAX_RETRY = 10;   // 최대 시도 수
-        final long SLEEP_MILLIS = 200;  // 대기 시간
         int tryCount = 0;   // 시도 수
 
         while (true) {
-            boolean locked = distributedLockRepository.tryLock(lockKey, lockValue, SEAT_LOCK_TIMEOUT_MILLIS);
+            boolean locked = distributedLockRepository.tryLock(lockKey, lockValue, LOCK_TIMEOUT_MILLIS);
             if (locked) {   // 락 획득 성공
                 try {
                     return reserveSeatTransactional(user.getUserId(), seatId, seatNumber);    // 좌석 임시 예약 처리
