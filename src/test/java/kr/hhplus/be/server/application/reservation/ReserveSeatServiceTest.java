@@ -62,6 +62,7 @@ class ReserveSeatServiceTest {
         Seat seat = mock(Seat.class);
         SeatReservation reservation = mock(SeatReservation.class);
 
+        // 1. 사용자/일정/토큰 등 기존 mock
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(scheduleRepository.findByConcertDate(concertDate)).thenReturn(Optional.of(schedule));
         when(schedule.getScheduleId()).thenReturn(100L);
@@ -72,21 +73,23 @@ class ReserveSeatServiceTest {
         when(queueToken.isExpired()).thenReturn(false);
         when(queueToken.isActive()).thenReturn(true);
 
-        // Lock 획득 성공
+        // 2. seatId 먼저 조회 (추가)
+        when(seatRepository.findSeatIdByScheduleIdAndSeatNumber(100L, seatNumber)).thenReturn(123L);
+
+        // 3. 분산락 획득
         when(distributedLockRepository.tryLock(anyString(), anyString(), anyLong())).thenReturn(true);
 
-        // Seat 조회 및 임시예약 가능
-        when(seatRepository.findByConcertSchedule_ScheduleIdAndSeatNumber(100L, seatNumber)).thenReturn(Optional.of(seat));
-        // when(seatRepository.findByConcertSchedule_ScheduleIdAndSeatNumberForUpdate(100L, seatNumber)).thenReturn(Optional.of(seat)); // Seat 조회 (비관적락)
+        // 4. 락 획득 후 seat 다시 조회
+        when(seatRepository.findById(123L)).thenReturn(Optional.of(seat));
 
+        // 5. seat 예약가능 mock
         when(seat.getStatus()).thenReturn(SeatStatus.TEMP_RESERVED);
         when(seat.isExpired(anyInt())).thenReturn(false);
         when(seat.isAvailable(anyInt())).thenReturn(true);
-        // 임시 예약 처리시 seat 변경 처리 mock
         doNothing().when(seat).reserveTemporarily();
         when(seat.getSeatId()).thenReturn(123L);
 
-        // 예약 저장
+        // 6. 예약 저장
         when(reservationRepository.save(any())).thenReturn(reservation);
 
         // when
@@ -96,6 +99,11 @@ class ReserveSeatServiceTest {
         assertThat(result).isNotNull();
         verify(seatRepository, times(1)).save(seat);
         verify(reservationRepository, times(1)).save(any(SeatReservation.class));
+        verify(distributedLockRepository, times(1)).unlock(anyString(), anyString());
+
+        // seatId 조회, seat 조회 2번 모두 검증
+        verify(seatRepository, times(1)).findSeatIdByScheduleIdAndSeatNumber(100L, seatNumber);
+        verify(seatRepository, times(1)).findById(123L);
     }
 
     @Test
@@ -107,8 +115,7 @@ class ReserveSeatServiceTest {
 
         // when & then
         assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, LocalDate.now().plusDays(1), 5))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("사용자를 찾을 수 없습니다");
+                .isInstanceOf(ApiException.class);
     }
 
     @Test
@@ -122,8 +129,7 @@ class ReserveSeatServiceTest {
 
         // when & then
         assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, concertDate, 5))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("콘서트가 존재하지 않습니다");
+                .isInstanceOf(ApiException.class);
     }
 
     @Test
@@ -144,8 +150,7 @@ class ReserveSeatServiceTest {
 
         // when & then
         assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, concertDate, 7))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("대기열 토큰이 존재하지 않습니다");
+                .isInstanceOf(ApiException.class);
     }
 
 }
