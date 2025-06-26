@@ -10,12 +10,12 @@ import kr.hhplus.be.server.domain.reservation.SeatReservation;
 import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
 import kr.hhplus.be.server.domain.user.User;
 import kr.hhplus.be.server.domain.user.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.Optional;
@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class ReserveSeatServiceTest {
 
     @InjectMocks
@@ -43,18 +44,16 @@ class ReserveSeatServiceTest {
     @Mock
     DistributedLockRepository distributedLockRepository;
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
+    Long userId = 1L;
+    Long scheduleId = 1L;
+    Long seatId = 1L;
+    int seatNumber = 1;
 
     @Test
     @DisplayName("좌석 예약 성공 - 정상 플로우")
     void reserveSeat_Success() {
         // given
-        Long userId = 1L;
         LocalDate concertDate = LocalDate.now().plusDays(1);
-        int seatNumber = 1;
 
         User user = mock(User.class);
         ConcertSchedule schedule = mock(ConcertSchedule.class);
@@ -65,29 +64,29 @@ class ReserveSeatServiceTest {
         // 1. 사용자/일정/토큰 등 기존 mock
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(scheduleRepository.findByConcertDate(concertDate)).thenReturn(Optional.of(schedule));
-        when(schedule.getScheduleId()).thenReturn(100L);
+        when(schedule.getScheduleId()).thenReturn(scheduleId);
         when(schedule.getConcertDate()).thenReturn(concertDate);
 
-        when(queueTokenRepository.findTokenIdByUserIdAndScheduleId(eq(userId), eq(100L))).thenReturn(Optional.of("queue-token-id"));
+        when(queueTokenRepository.findTokenIdByUserIdAndScheduleId(eq(userId), eq(scheduleId))).thenReturn(Optional.of("queue-token-id"));
         when(queueTokenRepository.findQueueTokenByTokenId("queue-token-id")).thenReturn(Optional.of(queueToken));
         when(queueToken.isExpired()).thenReturn(false);
         when(queueToken.isActive()).thenReturn(true);
 
         // 2. seatId 먼저 조회 (추가)
-        when(seatRepository.findSeatIdByScheduleIdAndSeatNumber(100L, seatNumber)).thenReturn(123L);
+        when(seatRepository.findSeatIdByScheduleIdAndSeatNumber(scheduleId, seatNumber)).thenReturn(seatId);
 
         // 3. 분산락 획득
         when(distributedLockRepository.tryLock(anyString(), anyString(), anyLong())).thenReturn(true);
 
         // 4. 락 획득 후 seat 다시 조회
-        when(seatRepository.findById(123L)).thenReturn(Optional.of(seat));
+        when(seatRepository.findById(seatId)).thenReturn(Optional.of(seat));
 
         // 5. seat 예약가능 mock
         when(seat.getStatus()).thenReturn(SeatStatus.TEMP_RESERVED);
         when(seat.isExpired(anyInt())).thenReturn(false);
         when(seat.isAvailable(anyInt())).thenReturn(true);
         doNothing().when(seat).reserveTemporarily();
-        when(seat.getSeatId()).thenReturn(123L);
+        when(seat.getSeatId()).thenReturn(seatId);
 
         // 6. 예약 저장
         when(reservationRepository.save(any())).thenReturn(reservation);
@@ -102,19 +101,18 @@ class ReserveSeatServiceTest {
         verify(distributedLockRepository, times(1)).unlock(anyString(), anyString());
 
         // seatId 조회, seat 조회 2번 모두 검증
-        verify(seatRepository, times(1)).findSeatIdByScheduleIdAndSeatNumber(100L, seatNumber);
-        verify(seatRepository, times(1)).findById(123L);
+        verify(seatRepository, times(1)).findSeatIdByScheduleIdAndSeatNumber(scheduleId, seatNumber);
+        verify(seatRepository, times(1)).findById(seatId);
     }
 
     @Test
     @DisplayName("좌석 예약 실패 - 사용자 없음")
     void reserveSeat_userNotFound() {
         // given
-        Long userId = 2L;
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, LocalDate.now().plusDays(1), 5))
+        assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, LocalDate.now().plusDays(1), seatNumber))
                 .isInstanceOf(ApiException.class);
     }
 
@@ -122,13 +120,12 @@ class ReserveSeatServiceTest {
     @DisplayName("좌석 예약 실패 - 일정 없음")
     void reserveSeat_scheduleNotFound() {
         // given
-        Long userId = 1L;
         LocalDate concertDate = LocalDate.now().plusDays(1);
         when(userRepository.findById(userId)).thenReturn(Optional.of(mock(User.class)));
         when(scheduleRepository.findByConcertDate(concertDate)).thenReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, concertDate, 5))
+        assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, concertDate, seatNumber))
                 .isInstanceOf(ApiException.class);
     }
 
@@ -136,20 +133,18 @@ class ReserveSeatServiceTest {
     @DisplayName("좌석 예약 실패 - 대기열 토큰 없음")
     void reserveSeat_noQueueToken() {
         // given
-        Long userId = 1L;
         LocalDate concertDate = LocalDate.now().plusDays(1);
         ConcertSchedule schedule = mock(ConcertSchedule.class);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(mock(User.class)));
         when(scheduleRepository.findByConcertDate(concertDate)).thenReturn(Optional.of(schedule));
-        when(schedule.getScheduleId()).thenReturn(42L);
+        when(schedule.getScheduleId()).thenReturn(scheduleId);
         when(schedule.getConcertDate()).thenReturn(concertDate);
 
-        when(queueTokenRepository.findTokenIdByUserIdAndScheduleId(userId, 42L))
-                .thenReturn(Optional.empty());
+        when(queueTokenRepository.findTokenIdByUserIdAndScheduleId(userId, scheduleId)).thenReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, concertDate, 7))
+        assertThatThrownBy(() -> reserveSeatService.reserveSeat(userId, concertDate, seatNumber))
                 .isInstanceOf(ApiException.class);
     }
 
