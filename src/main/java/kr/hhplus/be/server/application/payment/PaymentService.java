@@ -63,24 +63,20 @@ public class PaymentService {   // 좌석 예약 서비스
     // 트랜잭션 내 결제 처리
     @Transactional
     protected Payment paymentTransactional(Long userId, Long reservationId, Long seatId) {
-//        try {
-            // 1. 검증 및 데이터 조회
-            SeatReservation seatReservation = validateSeatReservation(reservationId, userId);
-            Seat seat = validateSeat(seatId);
-            int amount = seat.getPrice();
+        // 1. 검증 및 데이터 조회
+        SeatReservation seatReservation = validateSeatReservation(reservationId, userId);
+        Seat seat = validateSeat(seatId);
+        int amount = seat.getPrice();
 
-            // 2. 비즈니스 처리
-            useBalance(userId, amount);     // 잔액 차감
-            Payment payment = savePayment(userId, seatReservation.getReservationId(), amount); // 결제 생성
-            confirmReservation(seatReservation); // 예약 확정
-            confirmSeat(seat);                  // 좌석 확정
+        // 2. 비즈니스 처리
+        useBalance(userId, amount);     // 잔액 차감
+        Payment payment = savePayment(userId, seatReservation.getReservationId(), amount); // 결제 생성
+        confirmReservation(seatReservation); // 예약 확정
+        confirmSeat(seat);                  // 좌석 확정
 
-            // 3. 후처리
-            expireQueueToken(userId, seat.getScheduleId());  // 토큰 만료
-            return payment;
-//        } catch (DataIntegrityViolationException e) {
-//            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, String.format("해당 예약(%d)은 이미 결제되었거나 결제가 불가능한 상태입니다.", reservationId));
-//        }
+        // 3. 후처리
+        expireQueueToken(userId, seat.getScheduleId());  // 토큰 만료
+        return payment;
     }
 
 
