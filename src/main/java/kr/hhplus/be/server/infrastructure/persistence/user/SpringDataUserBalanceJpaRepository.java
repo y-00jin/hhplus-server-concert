@@ -28,7 +28,9 @@ public interface SpringDataUserBalanceJpaRepository extends JpaRepository<UserBa
      * # Method설명 : 사용자 현재 잔액 조회
      * # MethodName : findCurrentBalanceByUserId
      **/
-    @Query("SELECT ub.currentBalance FROM UserBalanceEntity ub WHERE ub.user.userId = :userId ORDER BY ub.balanceHistoryId DESC")
+//    @Query("SELECT ub.currentBalance FROM UserBalanceEntity ub WHERE ub.user.userId = :userId ORDER BY ub.balanceHistoryId DESC ")
+//    Optional<Long> findCurrentBalanceByUserId(@Param("userId") Long userId);
+    @Query(value = "SELECT current_balance FROM user_balance_history WHERE user_id = :userId ORDER BY balance_history_id DESC LIMIT 1", nativeQuery = true)
     Optional<Long> findCurrentBalanceByUserId(@Param("userId") Long userId);
 
 }
