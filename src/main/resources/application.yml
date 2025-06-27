@@ -30,6 +30,17 @@ spring:
   # 캐시 타입 - redis
   cache:
     type: redis
+    redis:
+      configs:
+        concert-schedules:
+          ttl: 3600000    # 1시간
+          max-idle-time: 0
+        concert-schedule:
+          ttl: 600000     # 10분
+          max-idle-time: 0
+        concert-seats:
+          ttl: 60000      # 1분
+          max-idle-time: 0
 
 ---
 spring.config.activate.on-profile: local, test
