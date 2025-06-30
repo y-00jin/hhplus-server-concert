@@ -79,9 +79,13 @@ public class  SeatReservation {
         }
     }
 
+    /**
+     * # Method설명 : 결제 가능 상태 검증
+     * # MethodName : validateAvailableToPay
+     **/
     public void validateAvailableToPay() {
-        if (this.status != ReservationStatus.TEMP_RESERVED || this.expiredAt.isBefore(LocalDateTime.now())) {
-            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, String.format("결제할 수 없는 예약 정보(%d)입니다.", this.reservationId));
+        if (this.status != ReservationStatus.TEMP_RESERVED || (this.expiredAt != null && this.expiredAt.isBefore(LocalDateTime.now()))) {
+            throw new ApiException(ErrorCode.INVALID_INPUT_VALUE, String.format("해당 예약(%d)은 이미 결제되었거나 결제가 불가능한 상태입니다.", this.reservationId));
         }
     }
 

@@ -22,21 +22,34 @@ public class RedisQueueTokenRepository implements QueueTokenRepository {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    // Redis Key 생성
-
-    // 토큰 정보 전체를 저장할 때 쓰는 키(이름)
+    /**
+     * # Method설명 : 대기열 토큰(token)으로 Key 생성
+     * # MethodName : tokenInfoKey
+     **/
     private String tokenInfoKey(String token) {
         return "queue:token:" + token;
     }
-    // userId와 scheduleId 조합으로 토큰ID를 저장/찾을 때 쓰는 키(이름)
+
+    /**
+     * # Method설명 : userId와 scheduleId 조합으로 key 생성
+     * # MethodName : userScheduleKey
+     **/
     private String userScheduleKey(Long userId, Long scheduleId) {
         return "queue:user-schedule:" + userId + ":" + scheduleId;
     }
-    // 콘서트별 ACTIVE(입장가능) ZSet의 key
+
+    /**
+     * # Method설명 : 일정ID로 ACTIVE(입장가능) key 생성
+     * # MethodName : activeSetKey
+     **/
     private String activeSetKey(Long scheduleId) {
         return "queue:active:" + scheduleId;
     }
-    // 콘서트별 WAITING(대기중) ZSet의 key
+
+    /**
+     * # Method설명 : 일정ID로 WAITING(대기중) key 생성
+     * # MethodName : waitingSetKey
+     **/
     private String waitingSetKey(Long scheduleId) {
         return "queue:waiting:" + scheduleId;
     }
@@ -47,8 +60,8 @@ public class RedisQueueTokenRepository implements QueueTokenRepository {
      **/
     @Override
     public void save(QueueToken queueToken) {
-        redisTemplate.opsForValue().set(tokenInfoKey(queueToken.getToken()), queueToken);   // 토큰 정보 전체 저장
-        redisTemplate.opsForValue().set(userScheduleKey(queueToken.getUserId(), queueToken.getScheduleId()), queueToken.getToken());    // userId, scheduleId 조합으로 token(문자열) 저장
+        redisTemplate.opsForValue().set(tokenInfoKey(queueToken.getToken()), queueToken);   // queue:token:대기열 토큰
+        redisTemplate.opsForValue().set(userScheduleKey(queueToken.getUserId(), queueToken.getScheduleId()), queueToken.getToken());    // queue:user-schedule:대기열 토큰
 
         if (queueToken.getStatus() == QueueStatus.ACTIVE) { // 활성화 상태
             saveActiveToken(queueToken);    // 입장 가능한 상태면 ACTIVE ZSet에
@@ -58,33 +71,33 @@ public class RedisQueueTokenRepository implements QueueTokenRepository {
     }
 
     /**
-     * # Method설명 : 특정 사용자/콘서트 일정 기준으로 토큰 id 조회
+     * # Method설명 : userId+scheduleId 키로 대기열 토큰 조회
      * # MethodName : findTokenIdByUserIdAndScheduleId
      **/
     @Override
     public Optional<String> findTokenIdByUserIdAndScheduleId(Long userId, Long scheduleId) {
-        Object token = redisTemplate.opsForValue().get(userScheduleKey(userId, scheduleId));    // userScheduleKey로 Redis에서 tokenId 조회
+        Object token = redisTemplate.opsForValue().get(userScheduleKey(userId, scheduleId));    // userScheduleKey로 Redis에서 대기열토큰조회
         return token != null ? Optional.of(token.toString()) : Optional.empty();    // 값이 있으면 Optional로 감싸서 반환, 없으면 Optional.empty()
     }
 
     /**
-     * # Method설명 : 토큰 id로 토큰 전체 정보 조회
+     * # Method설명 : 대기열토큰(token)으로 토큰 전체 정보(QueueToken) 조회
      * # MethodName : findQueueTokenByTokenId
      **/
     @Override
-    public Optional<QueueToken> findQueueTokenByTokenId(String tokenId) {
-        Object tokenObj = redisTemplate.opsForValue().get(tokenInfoKey(tokenId));
+    public Optional<QueueToken> findQueueTokenByTokenId(String token) {
+        Object tokenObj = redisTemplate.opsForValue().get(tokenInfoKey(token));
         if (tokenObj == null) return Optional.empty();
 
-        if (tokenObj instanceof QueueToken token) {
-            return Optional.of(token);
+        if (tokenObj instanceof QueueToken queueToken) {
+            return Optional.of(queueToken);
         }
 
         if (tokenObj instanceof java.util.Map map) {
             ObjectMapper mapper = new ObjectMapper();
             mapper.registerModule(new JavaTimeModule());
-            QueueToken token = mapper.convertValue(map, QueueToken.class);
-            return Optional.of(token);
+            QueueToken queueToken = mapper.convertValue(map, QueueToken.class);
+            return Optional.of(queueToken);
         }
 
         return Optional.empty();
@@ -97,8 +110,8 @@ public class RedisQueueTokenRepository implements QueueTokenRepository {
     @Override
     public Optional<Integer> findWaitingPosition(QueueToken queueToken) {
         String waitingKey = waitingSetKey(queueToken.getScheduleId());  // 대기열 ZSet의 키
-        String userSchedule = userScheduleKey(queueToken.getUserId(), queueToken.getScheduleId());   // 대기열 ZSet에 저장된 값: userId와 scheduleId를 묶은 문자열(key)
-        Long rank = redisTemplate.opsForZSet().rank(waitingKey, userSchedule);  // ZSet에서 내 "랭크"를 가져옴 (0번부터 시작)
+        String userSchedule = userScheduleKey(queueToken.getUserId(), queueToken.getScheduleId());   // queue:user-schedule:대기열 토큰
+        Long rank = redisTemplate.opsForZSet().rank(waitingKey, userSchedule);  // 대기열에서 내 순번 조회 (0번부터 시작)
         return rank != null ? Optional.of(rank.intValue() + 1) : Optional.empty(); // 1-based 순번
     }
 
@@ -108,7 +121,7 @@ public class RedisQueueTokenRepository implements QueueTokenRepository {
      **/
     @Override
     public int countWaitingTokens(Long scheduleId) {
-        Long count = redisTemplate.opsForZSet().count( waitingSetKey(scheduleId), Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+        Long count = redisTemplate.opsForZSet().count(waitingSetKey(scheduleId), Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
         return count != null ? count.intValue() : 0;
     }
 
@@ -188,9 +201,10 @@ public class RedisQueueTokenRepository implements QueueTokenRepository {
     }
 
 
-
-
-    // WAITING(대기 중) 상태 토큰 저장용
+    /**
+     * # Method설명 : WAITING(대기 중) 상태 토큰 저장
+     * # MethodName : saveWaitingToken
+     **/
     private void saveWaitingToken(QueueToken queueToken) {
         String waitingKey = waitingSetKey(queueToken.getScheduleId());
         String userSchedule = userScheduleKey(queueToken.getUserId(), queueToken.getScheduleId());
@@ -207,7 +221,10 @@ public class RedisQueueTokenRepository implements QueueTokenRepository {
         redisTemplate.expire(userSchedule, Duration.ofHours(24));
     }
 
-    // ACTIVE(입장가능) 상태 토큰 저장용
+    /**
+     * # Method설명 : ACTIVE(입장가능) 상태 토큰 저장
+     * # MethodName : saveActiveToken
+     **/
     private void saveActiveToken(QueueToken queueToken) {
         String activeKey = activeSetKey(queueToken.getScheduleId());
         String userSchedule = userScheduleKey(queueToken.getUserId(), queueToken.getScheduleId());

@@ -1,32 +1,44 @@
 package kr.hhplus.be.server.application.user;
 
-import kr.hhplus.be.server.api.user.dto.UserBalanceRequest;
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
-import kr.hhplus.be.server.domain.user.*;
+import kr.hhplus.be.server.domain.lock.DistributedLockRepository;
+import kr.hhplus.be.server.domain.user.User;
+import kr.hhplus.be.server.domain.user.UserBalance;
+import kr.hhplus.be.server.domain.user.UserBalanceRepository;
+import kr.hhplus.be.server.domain.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
-
-    UserRepository userRepository = mock(UserRepository.class);
-    UserBalanceRepository userBalanceRepository = mock(UserBalanceRepository.class);
-
+    @InjectMocks
     UserService userService;
+
+    @Mock
+    UserRepository userRepository;
+
+    @Mock
+    UserBalanceRepository userBalanceRepository;
+    @Mock
+    DistributedLockRepository distributedLockRepository;
 
     Long userId = 1L;
     private User user;
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, userBalanceRepository);
-        user = new User(userId, null, "test@test.com", "1234", "테스트", LocalDateTime.now(), LocalDateTime.now());
+        user = mock(User.class); // 필요시만 생성
     }
 
     @Test
@@ -90,17 +102,11 @@ public class UserServiceTest {
 
         long amount = 30000L;
         long currentBalance = 20000L;
-        UserBalance current = new UserBalance(
-                null,
-                userId,
-                0L,  // 과거 거래의 금액 (테스트상 의미 없음)
-                null,
-                currentBalance,
-                null,
-                null
-        );
-        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId)).thenReturn(Optional.of(current));
+
+        when(distributedLockRepository.tryLock(anyString(), anyString(), anyLong())).thenReturn(true);
+        when(userBalanceRepository.findCurrentBalanceByUserId(userId)).thenReturn(currentBalance);
         when(userBalanceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
 
         // when
         UserBalance result = userService.chargeBalance(userId, amount);
@@ -109,7 +115,9 @@ public class UserServiceTest {
         assertThat(result.getAmount()).isEqualTo(amount);
         assertThat(result.getCurrentBalance()).isEqualTo(amount + currentBalance);
 
-        // given
+        // 락 해제까지 정상 호출되었는지
+        verify(distributedLockRepository, times(1)).unlock(anyString(), anyString());
+        verify(userBalanceRepository, times(1)).save(any(UserBalance.class));
     }
 
     @Test
@@ -128,6 +136,8 @@ public class UserServiceTest {
     void 사용자아이디로_잔액_충전_실패_최소금액미만() {
         // given
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(distributedLockRepository.tryLock(anyString(), anyString(), anyLong())).thenReturn(true);
+
         // when & then
         assertThatThrownBy(() ->  userService.chargeBalance(userId, 0L))
                 .isInstanceOfSatisfying(ApiException.class, ex ->
@@ -141,20 +151,15 @@ public class UserServiceTest {
     void 잔액_사용_성공() {
         // given
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(distributedLockRepository.tryLock(anyString(), anyString(), anyLong())).thenReturn(true);
 
         long amount = 10000L;
         long currentBalance = 30000L;
 
-        UserBalance current = new UserBalance(
-                null,
-                userId,
-                0L,  // 과거 거래의 금액 (테스트상 의미 없음)
-                null,
-                currentBalance,
-                null,
-                null
-        );
-        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId)).thenReturn(Optional.of(current));
+        // 분산락 획득 후 DB에서 현재 잔액 조회
+        when(userBalanceRepository.findCurrentBalanceByUserId(userId)).thenReturn(currentBalance);
+
+        // save 호출 시 저장 객체 반환
         when(userBalanceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         // when
@@ -163,6 +168,9 @@ public class UserServiceTest {
         // then
         assertThat(result.getAmount()).isEqualTo(amount);
         assertThat(result.getCurrentBalance()).isEqualTo(currentBalance - amount);
+
+        verify(distributedLockRepository, times(1)).tryLock(anyString(), anyString(), anyLong());
+        verify(distributedLockRepository, times(1)).unlock(anyString(), anyString());
     }
 
     @Test
@@ -181,6 +189,7 @@ public class UserServiceTest {
     void 사용자아이디로_잔액_사용_실패_최소금액미만() {
         // given
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(distributedLockRepository.tryLock(anyString(), anyString(), anyLong())).thenReturn(true);
 
         // when & then
         assertThatThrownBy(() ->  userService.useBalance(userId, 0L))
@@ -193,29 +202,19 @@ public class UserServiceTest {
 
     @Test
     void 사용자아이디로_포인트_사용_실패_잔액부족() {
-
         // given
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(distributedLockRepository.tryLock(anyString(), anyString(), anyLong())).thenReturn(true);
 
         long currentBalance = 10000L;
-
-        UserBalance current = new UserBalance(
-                1L,
-                userId,
-                currentBalance,
-                UserBalanceType.CHARGE,
-                currentBalance,
-                null,
-                null
-        );
-        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId)).thenReturn(Optional.of(current));
+        when(userBalanceRepository.findCurrentBalanceByUserId(userId)).thenReturn(currentBalance);
 
         // when & then
         assertThatThrownBy(() -> userService.useBalance(userId, 50000L))
                 .isInstanceOfSatisfying(ApiException.class, ex ->
                         assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE)
                 );
-        verify(userRepository, times(1)).findById(userId);
-        verify(userBalanceRepository, times(1)).findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId);
+        verify(distributedLockRepository, times(1)).tryLock(anyString(), anyString(), anyLong());
+        verify(distributedLockRepository, times(1)).unlock(anyString(), anyString());
     }
 }

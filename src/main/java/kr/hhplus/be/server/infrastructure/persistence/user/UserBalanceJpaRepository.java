@@ -41,6 +41,11 @@ public class UserBalanceJpaRepository implements UserBalanceRepository {
         userBalanceRepository.deleteAll();
     }
 
+    @Override
+    public Long findCurrentBalanceByUserId(Long userId) {
+        return userBalanceRepository.findCurrentBalanceByUserId(userId).orElse(0L);
+    }
+
 
     private UserBalanceEntity toEntity(UserBalance domain) {
         // 1. id로 User, Seat 객체 조회

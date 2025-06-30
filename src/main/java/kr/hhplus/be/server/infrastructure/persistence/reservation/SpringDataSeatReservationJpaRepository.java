@@ -20,4 +20,7 @@ public interface SpringDataSeatReservationJpaRepository extends JpaRepository<Se
     Optional<SeatReservationEntity> findByReservationIdAndUser_UserId(Long reservationId, Long userId);
 
     List<SeatReservationEntity> findByStatusAndExpiredAtBefore(ReservationStatus status, LocalDateTime expiredAt);
+
+    @Query("SELECT sr.seat.seatId FROM SeatReservationEntity sr WHERE sr.reservationId = :reservationId")
+    Optional<Long> findSeatIdById(@Param("reservationId") Long reservationId);
 }
