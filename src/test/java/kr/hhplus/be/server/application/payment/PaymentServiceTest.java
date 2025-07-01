@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -68,7 +69,12 @@ class PaymentServiceTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));    // 사용자 조회
         when(seatReservationRepository.findSeatIdById(reservationId)).thenReturn(seatId);   // 좌석id 조회
-        when(distributedLockRepository.tryLock(anyString(), anyString(), anyLong())).thenReturn(true);
+        when(distributedLockRepository.withMultiLock(anyList(), any(), anyLong(), anyInt(), anyLong()))
+                .thenAnswer(invocation -> {
+                    // 실제 람다 실행
+                    Supplier<?> supplier = invocation.getArgument(1);
+                    return supplier.get();
+                });
         when(seatReservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));  // 예약 조회
         when(seatRepository.findById(seatId)).thenReturn(Optional.of(seat));   // 좌석 조회
         when(userBalanceRepository.findCurrentBalanceByUserId(userId)).thenReturn(currentBalance); // 잔액 조회
@@ -114,7 +120,12 @@ class PaymentServiceTest {
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(distributedLockRepository.tryLock(anyString(), anyString(), anyLong())).thenReturn(true);
+        when(distributedLockRepository.withMultiLock(anyList(), any(), anyLong(), anyInt(), anyLong()))
+                .thenAnswer(invocation -> {
+                    // 실제 람다 실행
+                    Supplier<?> supplier = invocation.getArgument(1);
+                    return supplier.get();
+                });
         when(seatReservationRepository.findById(reservationId)).thenReturn(Optional.of(expiredReservation));
 
         // then
