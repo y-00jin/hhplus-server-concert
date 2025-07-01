@@ -5,6 +5,7 @@ import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
 import kr.hhplus.be.server.domain.concert.Seat;
 import kr.hhplus.be.server.domain.concert.SeatRepository;
+import kr.hhplus.be.server.domain.lock.DistributedLockRepository;
 import kr.hhplus.be.server.domain.payment.Payment;
 import kr.hhplus.be.server.domain.payment.PaymentRepository;
 import kr.hhplus.be.server.domain.payment.PaymentStatus;
@@ -19,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -31,30 +34,49 @@ public class PaymentService {   // 좌석 예약 서비스
     private final UserBalanceRepository userBalanceRepository;
     private final SeatRepository seatRepository;
     private final QueueTokenRepository queueTokenRepository;
+    private final DistributedLockRepository distributedLockRepository;
+
+
+    private static final long LOCK_TIMEOUT_MILLIS = 15000;
+    private static final int MAX_RETRY = 10;
+    private static final long SLEEP_MILLIS = 200;
+
 
     /**
      * # Method설명 : 예약한 좌석 결제
      * # MethodName : payment
      **/
-    @Transactional
     public Payment payment(Long userId, Long reservationId) {
+        validateUser(userId);   // 사용자
+        Long seatId = seatReservationRepository.findSeatIdById(reservationId);  // lock-key에 쓰기위한 좌석 ID 조회
+        List<String> lockKeys = Arrays.asList(
+                "reservation-lock:" + reservationId,
+                "seat-lock:" + seatId,
+                "userBalance-lock:" + userId
+        );
 
-        // 1. 검증 단계
-        User user = validateUser(userId);   // 사용자
-        SeatReservation seatReservation = validateSeatReservation(reservationId, userId);   // 예약 정보
-        Seat seat = validateSeat(seatReservation.getSeatId());  // 콘서트 좌석 (예약 내역의 좌석id로)
-
-        // 2. 비즈니스 처리
-        useBalance(user, seat, userId); // 잔액 차감
-        Payment payment = savePayment(user, seatReservation, seat); // 결제 생성
-        confirmReservation(seatReservation); // 예약 확정
-        confirmSeat(seat); // 좌석 확정
-
-        // 3. 후처리
-        expireQueueToken(userId, seat.getScheduleId()); // 토큰 만료
-        return payment;
+        return distributedLockRepository.withMultiLock(lockKeys, () -> paymentTransactional(userId, reservationId, seatId),
+                LOCK_TIMEOUT_MILLIS, MAX_RETRY, SLEEP_MILLIS);
     }
 
+    // 트랜잭션 내 결제 처리
+    @Transactional
+    protected Payment paymentTransactional(Long userId, Long reservationId, Long seatId) {
+        // 1. 검증 및 데이터 조회
+        SeatReservation seatReservation = validateSeatReservation(reservationId, userId);
+        Seat seat = validateSeat(seatId);
+        int amount = seat.getPrice();
+
+        // 2. 비즈니스 처리
+        useBalance(userId, amount);     // 잔액 차감
+        Payment payment = savePayment(userId, seatReservation.getReservationId(), amount); // 결제 생성
+        confirmReservation(seatReservation); // 예약 확정
+        confirmSeat(seat);                  // 좌석 확정
+
+        // 3. 후처리
+        expireQueueToken(userId, seat.getScheduleId());  // 토큰 만료
+        return payment;
+    }
 
     /**
      * # Method설명 : 사용자 userId 검증
@@ -72,7 +94,7 @@ public class PaymentService {   // 좌석 예약 서비스
     private SeatReservation validateSeatReservation(Long reservationId, Long userId) {
 
         // 예약 lock 획득
-        SeatReservation seatReservation = seatReservationRepository.findByIdForUpdate(reservationId)
+        SeatReservation seatReservation = seatReservationRepository.findById(reservationId)
                 .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, String.format("예약 정보(%d)를 찾을 수 없습니다.", reservationId)));
 
         // 예약자 검증
@@ -89,8 +111,7 @@ public class PaymentService {   // 좌석 예약 서비스
      * # MethodName : validateSeat
      **/
     private Seat validateSeat(Long seatId) {
-        // 결제 시도 시 비관적 락으로 좌석 row 락 획득
-        return seatRepository.findBySeatIdForUpdate(seatId)
+        return seatRepository.findById(seatId)
                 .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "좌석 정보("+seatId+")를 찾을 수 없습니다."));
     }
 
@@ -98,16 +119,11 @@ public class PaymentService {   // 좌석 예약 서비스
      * # Method설명 : 잔액 사용 내역 생성
      * # MethodName : useBalance
      **/
-    private void useBalance(User user, Seat seat, Long userId) {
+    private void useBalance(Long userId, int amount) {
 
         // 현재 잔액 조회 (lock 획득)
-        long currentBalance = userBalanceRepository
-                .findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId)
-                .map(UserBalance::getCurrentBalance)
-                .orElse(0L);
-
-        long amount = seat.getPrice();  // 콘서트 좌석 금액
-        UserBalance userBalance = UserBalance.use(user.getUserId(), amount, currentBalance);
+        long currentBalance = userBalanceRepository.findCurrentBalanceByUserId(userId);
+        UserBalance userBalance = UserBalance.use(userId, amount, currentBalance);
         userBalanceRepository.save(userBalance);    // 잔액 사용 내역 생성
     }
 
@@ -115,11 +131,11 @@ public class PaymentService {   // 좌석 예약 서비스
      * # Method설명 : 결제 내역 생성
      * # MethodName : savePayment
      **/
-    private Payment savePayment(User user, SeatReservation seatReservation, Seat seat) {
+    private Payment savePayment(Long userId, Long reservationId, int amount) {
         Payment payment = Payment.create(
-                user.getUserId(),
-                seatReservation.getReservationId(),
-                seat.getPrice(),    // 콘서트 좌석 금액
+                userId,
+                reservationId,
+                amount,    // 콘서트 좌석 금액
                 PaymentStatus.SUCCESS
         );
         return paymentRepository.save(payment); // 결제 내역 생성

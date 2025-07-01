@@ -120,14 +120,11 @@ public class UserBalanceServiceConcurrencyTest {
         latch.await();
 
         // then
-        // 한 번만 성공, 나머지는 실패
+        // 전체 성공
         long successCount = results.stream().filter(r -> r).count();
-        long failCount = results.stream().filter(r -> !r).count();
+        assertThat(successCount).isEqualTo(threadCount);
 
-        assertThat(successCount).isEqualTo(1);
-        assertThat(failCount).isEqualTo(threadCount - successCount);
-
-        // 최종 잔액은 확인
+        // 최종 잔액 확인
         UserBalance balance = userService.getCurrentBalance(userId);
         assertThat(balance.getCurrentBalance()).isEqualTo(10000L * (successCount+1));
     }

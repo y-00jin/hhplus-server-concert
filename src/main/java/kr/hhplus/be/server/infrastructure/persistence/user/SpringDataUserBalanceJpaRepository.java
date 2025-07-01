@@ -16,9 +16,21 @@ public interface SpringDataUserBalanceJpaRepository extends JpaRepository<UserBa
      **/
     Optional<UserBalanceEntity> findTopByUser_UserIdOrderByBalanceHistoryIdDesc(Long userId);
 
-    // 가장 최근 내역을 "for update"로 select
+    /**
+     * # Method설명 : 가장 최근 내역 조회 - 비관적 락 적용
+     * # MethodName : findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate
+     **/
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT ub FROM UserBalanceEntity ub WHERE ub.user.userId = :userId ORDER BY ub.balanceHistoryId DESC")
     Optional<UserBalanceEntity> findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(@Param("userId") Long userId);
+
+    /**
+     * # Method설명 : 사용자 현재 잔액 조회
+     * # MethodName : findCurrentBalanceByUserId
+     **/
+//    @Query("SELECT ub.currentBalance FROM UserBalanceEntity ub WHERE ub.user.userId = :userId ORDER BY ub.balanceHistoryId DESC ")
+//    Optional<Long> findCurrentBalanceByUserId(@Param("userId") Long userId);
+    @Query(value = "SELECT current_balance FROM user_balance_history WHERE user_id = :userId ORDER BY balance_history_id DESC LIMIT 1", nativeQuery = true)
+    Optional<Long> findCurrentBalanceByUserId(@Param("userId") Long userId);
 
 }

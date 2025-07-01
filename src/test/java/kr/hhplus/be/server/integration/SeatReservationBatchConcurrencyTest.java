@@ -81,10 +81,11 @@ public class SeatReservationBatchConcurrencyTest {
         userBalanceRepository.save(UserBalance.charge(userId, 100000L, 0L));
 
         // 콘서트 일정 및 좌석 등록 (좌석은 임시 예약 상태로)
-        scheduleId = scheduleRepository.save(new ConcertSchedule(null, LocalDate.of(2025, 7, 1), now, now)).getScheduleId();
+        LocalDate concertDate = LocalDate.now().plusDays(1);
+        scheduleId = scheduleRepository.save(new ConcertSchedule(null, concertDate, now, now)).getScheduleId();
         seatId = seatRepository.save(new Seat(null, scheduleId, 1, 30000, SeatStatus.TEMP_RESERVED , now, now)).getSeatId();
 
-        // 대기열 토큰 발급
+        // 대기열 토큰 발급 (만료된 토큰)
         queueTokenRepository.save(new QueueToken(UUID.randomUUID().toString(), userId, scheduleId, 0, QueueStatus.ACTIVE, now.minusMinutes(6), now.minusMinutes(1)));
     }
 
@@ -108,8 +109,8 @@ public class SeatReservationBatchConcurrencyTest {
         // 1번 스레드: 예약 만료 상태로 변경
         executor.execute(() -> {
             try {
-                seatReservationBatch.expireReservationAndSeat(reservation);
-                log.info("[ 좌석 만료 성공 ] reservationId : {}", reservation.getReservationId());
+                seatReservationBatch.expireTempReservations();
+                log.info("[ 좌석 만료 시도 ] reservationId : {}", reservationId);
             } catch (Exception e) {
                 log.error("[ 좌석 만료 실패 ] {}", e.getMessage());
             } finally {

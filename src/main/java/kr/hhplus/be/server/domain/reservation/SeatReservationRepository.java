@@ -10,5 +10,6 @@ public interface SeatReservationRepository {
     Optional<SeatReservation> findByIdForUpdate(Long reservationId);    // lock
     Optional<SeatReservation> findByReservationIdAndUser_UserId(Long reservationId, Long userId);
     List<SeatReservation> findByStatusAndExpiredAtBefore(ReservationStatus status, LocalDateTime expiredAt);
+    Long findSeatIdById(Long reservationId);
     void deleteAllForTest();
 }

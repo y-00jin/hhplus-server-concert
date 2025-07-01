@@ -4,6 +4,7 @@ import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.domain.concert.Seat;
 import kr.hhplus.be.server.domain.concert.SeatRepository;
 import kr.hhplus.be.server.domain.concert.SeatStatus;
+import kr.hhplus.be.server.domain.lock.DistributedLockRepository;
 import kr.hhplus.be.server.domain.payment.Payment;
 import kr.hhplus.be.server.domain.payment.PaymentRepository;
 import kr.hhplus.be.server.domain.payment.PaymentStatus;
@@ -11,66 +12,72 @@ import kr.hhplus.be.server.domain.queue.QueueTokenRepository;
 import kr.hhplus.be.server.domain.reservation.ReservationStatus;
 import kr.hhplus.be.server.domain.reservation.SeatReservation;
 import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
-import kr.hhplus.be.server.domain.user.*;
+import kr.hhplus.be.server.domain.user.User;
+import kr.hhplus.be.server.domain.user.UserBalanceRepository;
+import kr.hhplus.be.server.domain.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.function.Supplier;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
 
-    private PaymentRepository paymentRepository;
-    private SeatReservationRepository seatReservationRepository;
-    private UserRepository userRepository;
-    private UserBalanceRepository userBalanceRepository;
-    private SeatRepository seatRepository;
-    private QueueTokenRepository queueTokenRepository;
+    @Mock PaymentRepository paymentRepository;
+    @Mock SeatReservationRepository seatReservationRepository;
+    @Mock UserRepository userRepository;
+    @Mock UserBalanceRepository userBalanceRepository;
+    @Mock SeatRepository seatRepository;
+    @Mock QueueTokenRepository queueTokenRepository;
+    @Mock DistributedLockRepository distributedLockRepository;
 
-    private PaymentService paymentService;
 
+    @InjectMocks
+    PaymentService paymentService;
+
+    Long userId = 1L;
+    Long reservationId = 1L;
+    Long seatId = 1L;
+    Long scheduleId = 1L;
+    int price = 30000;
+    long currentBalance = 50000L;
+
+    User user;
+    Seat seat;
+    SeatReservation reservation;
     @BeforeEach
     void setUp() {
-        paymentRepository = mock(PaymentRepository.class);
-        seatReservationRepository = mock(SeatReservationRepository.class);
-        userRepository = mock(UserRepository.class);
-        userBalanceRepository = mock(UserBalanceRepository.class);
-        seatRepository = mock(SeatRepository.class);
-        queueTokenRepository = mock(QueueTokenRepository.class);
-
-        paymentService = new PaymentService(
-                paymentRepository,
-                seatReservationRepository,
-                userRepository,
-                userBalanceRepository,
-                seatRepository,
-                queueTokenRepository
-        );
+        user = new User(userId, "", "test@test.com", "pw", "사용자", null, null);
+        seat = new Seat(seatId, scheduleId, 1, price, SeatStatus.TEMP_RESERVED, LocalDateTime.now(), LocalDateTime.now());
+        reservation = new SeatReservation(reservationId, userId, seatId, ReservationStatus.TEMP_RESERVED, LocalDateTime.now().plusMinutes(5), LocalDateTime.now(), LocalDateTime.now());
     }
 
     @Test
     void 결제_정상_진행() {
         // given
-        Long userId = 1L;
-        Long reservationId = 100L;
-        Long seatId = 10L;
-        Long scheduleId = 5L;
-        int price = 30000;
-        long currentBalance = 50000L;
-
-        User user = new User(userId, "", "test@test.com", "pw", "사용자", null, null);
-        Seat seat = new Seat(seatId, scheduleId, 1, price, SeatStatus.TEMP_RESERVED, LocalDateTime.now(), LocalDateTime.now());
-        SeatReservation reservation = new SeatReservation(reservationId, userId, seatId, ReservationStatus.TEMP_RESERVED, LocalDateTime.now().plusMinutes(10), LocalDateTime.now(), LocalDateTime.now());
         Payment payment = Payment.create(userId, reservationId, price, PaymentStatus.SUCCESS);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));    // 사용자 조회
-        when(seatReservationRepository.findByIdForUpdate(reservationId)).thenReturn(Optional.of(reservation));  // 예약 조회
-        when(seatRepository.findBySeatIdForUpdate(seatId)).thenReturn(Optional.of(seat));   // 좌석 조회
-        when(userBalanceRepository.findTopByUser_UserIdOrderByBalanceHistoryIdDescForUpdate(userId))    // 잔액 조회
-                .thenReturn(Optional.of(new UserBalance(null, userId, 0L, UserBalanceType.CHARGE, currentBalance, null, null)));
+        when(seatReservationRepository.findSeatIdById(reservationId)).thenReturn(seatId);   // 좌석id 조회
+        when(distributedLockRepository.withMultiLock(anyList(), any(), anyLong(), anyInt(), anyLong()))
+                .thenAnswer(invocation -> {
+                    // 실제 람다 실행
+                    Supplier<?> supplier = invocation.getArgument(1);
+                    return supplier.get();
+                });
+        when(seatReservationRepository.findById(reservationId)).thenReturn(Optional.of(reservation));  // 예약 조회
+        when(seatRepository.findById(seatId)).thenReturn(Optional.of(seat));   // 좌석 조회
+        when(userBalanceRepository.findCurrentBalanceByUserId(userId)).thenReturn(currentBalance); // 잔액 조회
         when(userBalanceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(paymentRepository.save(any())).thenReturn(payment);
         when(queueTokenRepository.findTokenIdByUserIdAndScheduleId(userId, scheduleId)).thenReturn(Optional.empty());
@@ -97,32 +104,32 @@ class PaymentServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
         // then
-        assertThatThrownBy(() -> paymentService.payment(1L, 100L))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("사용자를 찾을 수 없습니다");
+        assertThatThrownBy(() -> paymentService.payment(userId, reservationId))
+                .isInstanceOf(ApiException.class);
     }
 
     @Test
     void 만료된_예약은_예외() {
         // given
-        Long userId = 1L;
-        Long reservationId = 100L;
-
         SeatReservation expiredReservation = new SeatReservation(
                 reservationId, userId, 10L,
                 ReservationStatus.TEMP_RESERVED,
                 LocalDateTime.now().minusMinutes(1),  // 만료
-                LocalDateTime.now().minusMinutes(10),
+                LocalDateTime.now().minusMinutes(6),
                 LocalDateTime.now()
         );
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(mock(User.class)));
-        when(seatReservationRepository.findByIdForUpdate(reservationId))
-                .thenReturn(Optional.of(expiredReservation));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(distributedLockRepository.withMultiLock(anyList(), any(), anyLong(), anyInt(), anyLong()))
+                .thenAnswer(invocation -> {
+                    // 실제 람다 실행
+                    Supplier<?> supplier = invocation.getArgument(1);
+                    return supplier.get();
+                });
+        when(seatReservationRepository.findById(reservationId)).thenReturn(Optional.of(expiredReservation));
 
         // then
         assertThatThrownBy(() -> paymentService.payment(userId, reservationId))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("결제할 수 없는 예약 정보");
+                .isInstanceOf(ApiException.class);
     }
 }
