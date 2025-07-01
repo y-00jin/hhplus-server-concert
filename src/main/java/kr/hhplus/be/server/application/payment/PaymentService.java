@@ -20,8 +20,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.function.Supplier;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
@@ -46,7 +47,6 @@ public class PaymentService {   // 좌석 예약 서비스
      * # MethodName : payment
      **/
     public Payment payment(Long userId, Long reservationId) {
-
         validateUser(userId);   // 사용자
         Long seatId = seatReservationRepository.findSeatIdById(reservationId);  // lock-key에 쓰기위한 좌석 ID 조회
         List<String> lockKeys = Arrays.asList(
@@ -55,10 +55,9 @@ public class PaymentService {   // 좌석 예약 서비스
                 "userBalance-lock:" + userId
         );
 
-        return withMultiLock(lockKeys, () -> paymentTransactional(userId, reservationId, seatId));
-
+        return distributedLockRepository.withMultiLock(lockKeys, () -> paymentTransactional(userId, reservationId, seatId),
+                LOCK_TIMEOUT_MILLIS, MAX_RETRY, SLEEP_MILLIS);
     }
-
 
     // 트랜잭션 내 결제 처리
     @Transactional
@@ -78,64 +77,6 @@ public class PaymentService {   // 좌석 예약 서비스
         expireQueueToken(userId, seat.getScheduleId());  // 토큰 만료
         return payment;
     }
-
-
-    /**
-     * # Method설명 : 여러 분산락 순차적으로 획득
-     * # MethodName : withMultiLock
-     **/
-    private <T> T withMultiLock(List<String> lockKeys, Supplier<T> action) {
-        List<String> acquiredKeys = new ArrayList<>();  // 획득한 락 key 리스트
-        List<String> lockValues = new ArrayList<>();    // 각 락의 고유 value (락 해제시 사용)
-        try {
-            // 각 key 별로 순서대로 락 획득 시도
-            for (String lockKey : lockKeys) {
-                String lockValue = UUID.randomUUID().toString();
-                boolean locked = false;
-                int tryCount = 0;
-
-                // 스핀락 방식으로 최대 MAX_RETRY번 재시도
-                while (!locked && tryCount < MAX_RETRY) {
-                    locked = distributedLockRepository.tryLock(lockKey, lockValue, LOCK_TIMEOUT_MILLIS);    // 락 획득
-                    if (!locked) {  // 락 획득 실패
-                        tryCount++;
-                        Thread.sleep(SLEEP_MILLIS);
-                    }
-                }
-                if (!locked) {  // 최종적으로 락 획득 실패
-                    releaseAllLocks(acquiredKeys, lockValues);  // 획득한 락 전체 해제
-                    throw new ApiException(ErrorCode.FORBIDDEN, "결제 요청이 많아 처리가 지연되고 있습니다. 잠시 후 다시 시도해 주세요.");
-                }
-                // 3. 획득한 락 리스트에 추가
-                acquiredKeys.add(lockKey);
-                lockValues.add(lockValue);
-            }
-            return action.get();    // 모든 락 획득 후 비즈니스 로직 실행
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            releaseAllLocks(acquiredKeys, lockValues);
-            throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR, "락 대기 중 인터럽트 발생");
-        } catch (RuntimeException e) {
-            releaseAllLocks(acquiredKeys, lockValues);
-            throw e;
-        } finally {
-            releaseAllLocks(acquiredKeys, lockValues);
-        }
-    }
-
-
-    /**
-     * # Method설명 : 락 전체 해제
-     * # MethodName : releaseAllLocks
-     **/
-    private void releaseAllLocks(List<String> lockKeys, List<String> lockValues) {
-        for (int i = 0; i < lockKeys.size(); i++) {
-            try {
-                distributedLockRepository.unlock(lockKeys.get(i), lockValues.get(i));
-            } catch (Exception ignore) {}
-        }
-    }
-
 
     /**
      * # Method설명 : 사용자 userId 검증

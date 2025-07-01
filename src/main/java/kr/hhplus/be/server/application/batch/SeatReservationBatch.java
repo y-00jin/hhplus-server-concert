@@ -1,7 +1,5 @@
 package kr.hhplus.be.server.application.batch;
 
-import kr.hhplus.be.server.common.exception.ApiException;
-import kr.hhplus.be.server.common.exception.ErrorCode;
 import kr.hhplus.be.server.domain.concert.Seat;
 import kr.hhplus.be.server.domain.concert.SeatRepository;
 import kr.hhplus.be.server.domain.concert.SeatStatus;
@@ -17,8 +15,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.function.Supplier;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -49,69 +48,12 @@ public class SeatReservationBatch {
                     "seat-lock:" + reservation.getSeatId()
             );
 
-            withMultiLock(lockKeys, () -> {
+            distributedLockRepository.withMultiLock(lockKeys, () -> {
                 expireReservationAndSeatTransactional(reservation.getReservationId(), reservation.getSeatId());
                 return null;
-            });
+            }, LOCK_TIMEOUT_MILLIS, MAX_RETRY, SLEEP_MILLIS);
         }
     }
-
-    /**
-     * # Method설명 : 여러 분산락 순차적으로 획득
-     * # MethodName : withMultiLock
-     **/
-    private <T> T withMultiLock(List<String> lockKeys, Supplier<T> action) {
-        List<String> acquiredKeys = new ArrayList<>();  // 획득한 락 key 리스트
-        List<String> lockValues = new ArrayList<>();    // 각 락의 고유 value (락 해제시 사용)
-        try {
-            // 각 key 별로 순서대로 락 획득 시도
-            for (String lockKey : lockKeys) {
-                String lockValue = UUID.randomUUID().toString();
-                boolean locked = false;
-                int tryCount = 0;
-                // 스핀락 방식으로 최대 MAX_RETRY번 재시도
-                while (!locked && tryCount < MAX_RETRY) {
-                    locked = distributedLockRepository.tryLock(lockKey, lockValue, LOCK_TIMEOUT_MILLIS);
-                    if (!locked) {  // 락 획득 실패
-                        tryCount++;
-                        Thread.sleep(SLEEP_MILLIS);
-                    }
-                }
-                if (!locked) {  // 최종적으로 락 획득 실패
-                    releaseAllLocks(acquiredKeys, lockValues);  // 획득한 락 전체 해제
-                    log.warn("락 획득 실패: {}", lockKey);
-                    return null;
-                }
-                // 3. 획득한 락 리스트에 추가
-                acquiredKeys.add(lockKey);
-                lockValues.add(lockValue);
-            }
-            return action.get();    // 모든 락 획득 후 비즈니스 로직 실행
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            releaseAllLocks(acquiredKeys, lockValues);
-            log.error("락 획득 중 인터럽트 발생");
-            return null;
-        } catch (RuntimeException e) {
-            releaseAllLocks(acquiredKeys, lockValues);
-            throw e;
-        } finally {
-            releaseAllLocks(acquiredKeys, lockValues);
-        }
-    }
-
-    /**
-     * # Method설명 : 락 전체 해제
-     * # MethodName : releaseAllLocks
-     **/
-    private void releaseAllLocks(List<String> lockKeys, List<String> lockValues) {
-        for (int i = 0; i < lockKeys.size(); i++) {
-            try {
-                distributedLockRepository.unlock(lockKeys.get(i), lockValues.get(i));
-            } catch (Exception ignore) {}
-        }
-    }
-
 
     @Transactional
     public void expireReservationAndSeatTransactional(Long reservationId, Long seatId) {
