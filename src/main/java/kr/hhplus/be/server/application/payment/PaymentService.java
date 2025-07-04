@@ -3,8 +3,7 @@ package kr.hhplus.be.server.application.payment;
 
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
-import kr.hhplus.be.server.domain.concert.Seat;
-import kr.hhplus.be.server.domain.concert.SeatRepository;
+import kr.hhplus.be.server.domain.concert.*;
 import kr.hhplus.be.server.domain.lock.DistributedLockRepository;
 import kr.hhplus.be.server.domain.payment.Payment;
 import kr.hhplus.be.server.domain.payment.PaymentRepository;
@@ -20,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +35,8 @@ public class PaymentService {   // 좌석 예약 서비스
     private final SeatRepository seatRepository;
     private final QueueTokenRepository queueTokenRepository;
     private final DistributedLockRepository distributedLockRepository;
+    private final ConcertSoldoutRankingRepository concertSoldoutRankingRepository;
+    private final ConcertScheduleRepository scheduleRepository;
 
 
     private static final long LOCK_TIMEOUT_MILLIS = 15000;
@@ -73,7 +75,10 @@ public class PaymentService {   // 좌석 예약 서비스
         confirmReservation(seatReservation); // 예약 확정
         confirmSeat(seat);                  // 좌석 확정
 
-        // 3. 후처리
+        // 3. 매진 체크 & 랭킹 등록
+        checkAndRegisterSoldoutRanking(seat.getScheduleId());
+
+        // 4. 후처리
         expireQueueToken(userId, seat.getScheduleId());  // 토큰 만료
         return payment;
     }
@@ -166,6 +171,31 @@ public class PaymentService {   // 좌석 예약 서비스
     private void expireQueueToken(Long userId, Long scheduleId) {
         Optional<String> tokenIdOpt = queueTokenRepository.findTokenIdByUserIdAndScheduleId(userId, scheduleId);
         tokenIdOpt.ifPresent(queueTokenRepository::expiresQueueToken);
+    }
+
+
+    private void checkAndRegisterSoldoutRanking(Long scheduleId) {
+        // 전체 좌석 수
+        int totalSeats = seatRepository.countByConcertSchedule_ScheduleId(scheduleId);
+        // CONFIRMED 좌석 수
+        int confirmedSeats = seatRepository.countByConcertSchedule_ScheduleIdAndStatus(scheduleId, SeatStatus.CONFIRMED);
+
+        // 이미 랭킹 등록됐는지 Redis에서 확인 (중복 등록 방지)
+        LocalDateTime now = LocalDateTime.now();
+        String yearMonth = String.format("%04d%02d", now.getYear(), now.getMonthValue());
+        boolean alreadyRanked = concertSoldoutRankingRepository.isAlreadyRanked(yearMonth, scheduleId);
+        if (alreadyRanked) return;
+
+        if (totalSeats == confirmedSeats) { // 매진 상태
+            // 매진까지 걸린 시간 계산
+            LocalDateTime createdAt = scheduleRepository.findById(scheduleId)
+                    .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "일정 정보 없음"))
+                    .getCreatedAt();
+            long elapsedSeconds = java.time.Duration.between(createdAt, now).getSeconds();
+
+            // Redis에 랭킹 등록
+            concertSoldoutRankingRepository.addSoldoutRanking(yearMonth, scheduleId, elapsedSeconds);
+        }
     }
 
 }

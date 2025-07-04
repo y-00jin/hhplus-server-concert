@@ -26,4 +26,8 @@ public interface SeatRepository {
     Optional<Seat> findById(Long seatId);
 
     void deleteAllForTest();
+
+    int countByConcertSchedule_ScheduleId(Long scheduleId);
+    int countByConcertSchedule_ScheduleIdAndStatus(Long scheduleId, SeatStatus status);
+
 }

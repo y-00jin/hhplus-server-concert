@@ -24,6 +24,13 @@ public class ConcertScheduleJpaRepository implements ConcertScheduleRepository {
     }
 
     @Override
+    public List<ConcertSchedule> findAllByScheduleIdIn(List<Long> scheduleIds) {
+        return scheduleRepository.findAllByScheduleIdIn(scheduleIds)
+                .stream().map(this::toDomain)
+                .toList();
+    }
+
+    @Override
     public Optional<ConcertSchedule> findByConcertDate(LocalDate concertDate) {
         return scheduleRepository.findByConcertDate(concertDate).map(this::toDomain);
     }

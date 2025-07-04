@@ -20,11 +20,13 @@ class ConcertServiceTest {
     ConcertScheduleRepository scheduleRepository = mock(ConcertScheduleRepository.class);
     SeatRepository seatRepository = mock(SeatRepository.class);
 
+    ConcertSoldoutRankingRepository concertSoldoutRankingRepository = mock(ConcertSoldoutRankingRepository.class);
+
     ConcertService concertService;
 
     @BeforeEach
     void setUp() {
-        concertService = new ConcertService(scheduleRepository, seatRepository);
+        concertService = new ConcertService(scheduleRepository, seatRepository, concertSoldoutRankingRepository);
     }
 
     @Test

@@ -1,9 +1,7 @@
 package kr.hhplus.be.server.application.payment;
 
 import kr.hhplus.be.server.common.exception.ApiException;
-import kr.hhplus.be.server.domain.concert.Seat;
-import kr.hhplus.be.server.domain.concert.SeatRepository;
-import kr.hhplus.be.server.domain.concert.SeatStatus;
+import kr.hhplus.be.server.domain.concert.*;
 import kr.hhplus.be.server.domain.lock.DistributedLockRepository;
 import kr.hhplus.be.server.domain.payment.Payment;
 import kr.hhplus.be.server.domain.payment.PaymentRepository;
@@ -22,6 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -41,6 +40,8 @@ class PaymentServiceTest {
     @Mock QueueTokenRepository queueTokenRepository;
     @Mock DistributedLockRepository distributedLockRepository;
 
+    @Mock ConcertSoldoutRankingRepository concertSoldoutRankingRepository;
+    @Mock ConcertScheduleRepository scheduleRepository;
 
     @InjectMocks
     PaymentService paymentService;
@@ -82,6 +83,18 @@ class PaymentServiceTest {
         when(paymentRepository.save(any())).thenReturn(payment);
         when(queueTokenRepository.findTokenIdByUserIdAndScheduleId(userId, scheduleId)).thenReturn(Optional.empty());
 
+        // 매진 조건 세팅 (전체 좌석 = CONFIRMED 좌석)
+        when(seatRepository.countByConcertSchedule_ScheduleId(scheduleId)).thenReturn(1);
+        when(seatRepository.countByConcertSchedule_ScheduleIdAndStatus(scheduleId, SeatStatus.CONFIRMED)).thenReturn(1);
+
+        // 아직 랭킹 등록 안 됨
+        when(concertSoldoutRankingRepository.isAlreadyRanked(anyString(), eq(scheduleId))).thenReturn(false);
+        // 콘서트 생성일 반환
+        when(scheduleRepository.findById(scheduleId)).thenReturn(
+                Optional.of(new ConcertSchedule(scheduleId, LocalDate.now().plusDays(1),  LocalDateTime.now().minusMinutes(10), LocalDateTime.now().minusMinutes(10)))
+        );
+
+
         // when
         Payment result = paymentService.payment(userId, reservationId);
 
@@ -96,6 +109,7 @@ class PaymentServiceTest {
         verify(seatReservationRepository).save(any());
         verify(seatRepository).save(any());
         verify(paymentRepository).save(any());
+        verify(concertSoldoutRankingRepository, times(1)).addSoldoutRanking(anyString(), eq(scheduleId), anyDouble());
     }
 
     @Test
@@ -132,4 +146,9 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> paymentService.payment(userId, reservationId))
                 .isInstanceOf(ApiException.class);
     }
+
+
+
+
+
 }

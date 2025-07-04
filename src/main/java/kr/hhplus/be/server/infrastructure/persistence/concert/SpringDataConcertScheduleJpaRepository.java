@@ -12,4 +12,6 @@ public interface SpringDataConcertScheduleJpaRepository extends JpaRepository<Co
 
     // 특정 날짜로 콘서트 일정 조회
     Optional<ConcertScheduleEntity> findByConcertDate(LocalDate concertDate);
+
+    List<ConcertScheduleEntity> findAllByScheduleIdIn(List<Long> scheduleIds);
 }
