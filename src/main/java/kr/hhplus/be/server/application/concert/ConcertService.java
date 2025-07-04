@@ -6,10 +6,12 @@ import kr.hhplus.be.server.common.exception.ErrorCode;
 import kr.hhplus.be.server.domain.concert.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -17,6 +19,7 @@ public class ConcertService {
 
     private final ConcertScheduleRepository scheduleRepository;
     private final SeatRepository seatRepository;
+    private final ConcertSoldoutRankingRepository concertSoldoutRankingRepository;
 
     /**
      * # Method설명 : 예약 가능 콘서트 일정 조회 (오늘 이후)
@@ -39,6 +42,33 @@ public class ConcertService {
 
         // 좌석 조회 (해당 일정ID 기준)
         return seatRepository.findAllByConcertSchedule_ScheduleIdAndStatus(schedule.getScheduleId(), SeatStatus.FREE);
+    }
+
+    public List<ConcertSchedule> getSoldoutRanking(Integer year, Integer month, int topN) {
+        // 1. 연/월 없는 경우 이번 달
+        LocalDate now = LocalDate.now();
+        int y = (year != null) ? year : now.getYear();
+        int m = (month != null) ? month : now.getMonthValue();
+        String yearMonth = String.format("%04d%02d", y, m);
+
+        // 2. Redis에서 TOP N 랭킹 조회 -> schedule:{id} 중 id만 조회
+        List<Long> scheduleIds = concertSoldoutRankingRepository.getSoldoutRanking(yearMonth, topN)
+                .stream()
+                .map(member -> Long.parseLong(member.replace("schedule:", "")))
+                .toList();
+
+        // 3. 콘서트 일정 정보 조회
+        List<ConcertSchedule> schedules = scheduleRepository.findAllByScheduleIdIn(scheduleIds);
+
+        // ID → Entity 맵핑
+        Map<Long, ConcertSchedule> map = schedules.stream()
+                .collect(Collectors.toMap(ConcertSchedule::getScheduleId, s -> s));
+
+        // 랭킹 순서대로 정렬
+        return scheduleIds.stream()
+                .map(map::get)
+                .filter(Objects::nonNull)
+                .toList();
     }
 
 }
