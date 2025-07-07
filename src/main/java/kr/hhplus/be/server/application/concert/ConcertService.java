@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -51,11 +52,14 @@ public class ConcertService {
         int m = (month != null) ? month : now.getMonthValue();
         String yearMonth = String.format("%04d%02d", y, m);
 
-        // 2. Redis에서 TOP N 랭킹 조회 -> schedule:{id} 중 id만 조회
         List<Long> scheduleIds = concertSoldoutRankingRepository.getSoldoutRanking(yearMonth, topN)
                 .stream()
                 .map(member -> Long.parseLong(member.replace("schedule:", "")))
                 .toList();
+
+        if (scheduleIds.isEmpty()) {
+            return Collections.emptyList();
+        }
 
         // 3. 콘서트 일정 정보 조회
         List<ConcertSchedule> schedules = scheduleRepository.findAllByScheduleIdIn(scheduleIds);
