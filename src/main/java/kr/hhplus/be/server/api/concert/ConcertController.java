@@ -64,7 +64,7 @@ public class ConcertController {
     }
 
     @GetMapping("/rankings/soldout")
-    public ResponseEntity<List<ConcertSoldoutRankingResponse>> getSoldoutRanking(@RequestParam(name = "year",required = false) Integer year, @RequestParam(name = "month",required = false) Integer month, @RequestParam(name = "topN",defaultValue = "10") int topN) {
+    public ResponseEntity<List<ConcertSoldoutRankingResponse>> getSoldoutRanking(@RequestParam(name = "year",required = false) Integer year, @RequestParam(name = "month",required = false) Integer month, @RequestParam(name = "topN",required = false) Integer topN) {
         List<ConcertSchedule> resultList = concertService.getSoldoutRanking(year, month, topN);
 
         List<ConcertSoldoutRankingResponse> response =

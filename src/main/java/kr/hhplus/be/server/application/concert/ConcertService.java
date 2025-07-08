@@ -5,6 +5,7 @@ import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
 import kr.hhplus.be.server.domain.concert.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -21,6 +22,9 @@ public class ConcertService {
     private final ConcertScheduleRepository scheduleRepository;
     private final SeatRepository seatRepository;
     private final ConcertSoldoutRankingRepository concertSoldoutRankingRepository;
+
+    @Value("${app.concert.ranking.soldout.default-top-n}")
+    private int defaultTopN;
 
     /**
      * # Method설명 : 예약 가능 콘서트 일정 조회 (오늘 이후)
@@ -45,14 +49,15 @@ public class ConcertService {
         return seatRepository.findAllByConcertSchedule_ScheduleIdAndStatus(schedule.getScheduleId(), SeatStatus.FREE);
     }
 
-    public List<ConcertSchedule> getSoldoutRanking(Integer year, Integer month, int topN) {
+    public List<ConcertSchedule> getSoldoutRanking(Integer year, Integer month, Integer topN) {
         // 1. 연/월 없는 경우 이번 달
         LocalDate now = LocalDate.now();
         int y = (year != null) ? year : now.getYear();
         int m = (month != null) ? month : now.getMonthValue();
+        int n = (topN != null) ? topN : defaultTopN;
         String yearMonth = String.format("%04d%02d", y, m);
 
-        List<Long> scheduleIds = concertSoldoutRankingRepository.getSoldoutRanking(yearMonth, topN)
+        List<Long> scheduleIds = concertSoldoutRankingRepository.getSoldoutRanking(yearMonth, n)
                 .stream()
                 .map(member -> Long.parseLong(member.replace("schedule:", "")))
                 .toList();

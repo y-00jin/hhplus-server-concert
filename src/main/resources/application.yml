@@ -50,3 +50,10 @@ spring:
     url: jdbc:mysql://localhost:3307/hhplus?characterEncoding=UTF-8&serverTimezone=UTC
     username: application
     password: application
+
+
+app:
+  concert:
+    ranking:
+      soldout:
+        default-top-n: 10
