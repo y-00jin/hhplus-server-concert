@@ -35,4 +35,10 @@ public interface SpringDataSeatJpaRepository extends JpaRepository<SeatEntity, L
     @Query("SELECT s FROM SeatEntity s WHERE s.seatId = :seatId")
     Optional<SeatEntity> findBySeatIdForUpdate(@Param("seatId") Long seatId);
 
+    // 전체 좌석 수 조회
+    int countByConcertSchedule_ScheduleId(Long scheduleId);
+
+    // 상태값으로 좌석 수 조회
+    int countByConcertSchedule_ScheduleIdAndStatus(Long scheduleId, SeatStatus status);
+
 }

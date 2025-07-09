@@ -2,17 +2,17 @@ package kr.hhplus.be.server.api.concert;
 
 
 import kr.hhplus.be.server.api.concert.dto.ConcertScheduleResponse;
+import kr.hhplus.be.server.api.concert.dto.ConcertSoldoutRankingResponse;
 import kr.hhplus.be.server.api.concert.dto.SeatResponse;
 import kr.hhplus.be.server.application.concert.ConcertService;
+import kr.hhplus.be.server.domain.concert.ConcertSchedule;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.IntStream;
 
 @RequiredArgsConstructor
 @RestController
@@ -60,6 +60,22 @@ public class ConcertController {
                                 .build()
                         )
                 .toList();
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/rankings/soldout")
+    public ResponseEntity<List<ConcertSoldoutRankingResponse>> getSoldoutRanking(@RequestParam(name = "year",required = false) Integer year, @RequestParam(name = "month",required = false) Integer month, @RequestParam(name = "topN",required = false) Integer topN) {
+        List<ConcertSchedule> resultList = concertService.getSoldoutRanking(year, month, topN);
+
+        List<ConcertSoldoutRankingResponse> response =
+                IntStream.range(0, resultList.size())
+                        .mapToObj(i -> ConcertSoldoutRankingResponse.builder()
+                                .scheduleId(resultList.get(i).getScheduleId())
+                                .concertDate(resultList.get(i).getConcertDate())
+                                .ranking(i + 1)
+                                .build())
+                        .toList();
+
         return ResponseEntity.ok(response);
     }
 }

@@ -69,6 +69,16 @@ public class SeatJpaRepository implements SeatRepository {
         seatRepository.deleteAll();
     }
 
+    @Override
+    public int countByConcertSchedule_ScheduleId(Long scheduleId) {
+        return seatRepository.countByConcertSchedule_ScheduleId(scheduleId);
+    }
+
+    @Override
+    public int countByConcertSchedule_ScheduleIdAndStatus(Long scheduleId, SeatStatus status) {
+        return seatRepository.countByConcertSchedule_ScheduleIdAndStatus(scheduleId, status);
+    }
+
 
     private SeatEntity toEntity(Seat domain) {
         ConcertScheduleEntity scheduleEntity =  scheduleRepository.findById(domain.getScheduleId()).orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, null));
