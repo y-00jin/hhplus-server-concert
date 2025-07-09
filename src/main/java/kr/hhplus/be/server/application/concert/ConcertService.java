@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +79,31 @@ public class ConcertService {
                 .map(map::get)
                 .filter(Objects::nonNull)
                 .toList();
+    }
+
+    public void checkAndRegisterSoldoutRanking(Long scheduleId) {
+
+        // 전체 좌석 수
+        int totalSeats = seatRepository.countByConcertSchedule_ScheduleId(scheduleId);
+        // CONFIRMED 좌석 수
+        int confirmedSeats = seatRepository.countByConcertSchedule_ScheduleIdAndStatus(scheduleId, SeatStatus.CONFIRMED);
+
+        // 이미 랭킹 등록됐는지 Redis에서 확인 (중복 등록 방지)
+        LocalDateTime now = LocalDateTime.now();
+        String yearMonth = String.format("%04d%02d", now.getYear(), now.getMonthValue());
+        boolean alreadyRanked = concertSoldoutRankingRepository.isAlreadyRanked(yearMonth, scheduleId);
+        if (alreadyRanked) return;
+
+        if (totalSeats == confirmedSeats) { // 매진 상태
+            // 매진까지 걸린 시간 계산
+            LocalDateTime createdAt = scheduleRepository.findById(scheduleId)
+                    .orElseThrow(() -> new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "일정 정보 없음"))
+                    .getCreatedAt();
+            long elapsedSeconds = java.time.Duration.between(createdAt, now).getSeconds();
+
+            // Redis에 랭킹 등록
+            concertSoldoutRankingRepository.addSoldoutRanking(yearMonth, scheduleId, elapsedSeconds);
+        }
     }
 
 }
