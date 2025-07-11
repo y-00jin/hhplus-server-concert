@@ -1,6 +1,7 @@
 package kr.hhplus.be.server.application.payment;
 
 import kr.hhplus.be.server.application.concert.event.ConcertSoldoutEventPublisher;
+import kr.hhplus.be.server.application.payment.event.PaymentEventPublisher;
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
 import kr.hhplus.be.server.domain.concert.Seat;
@@ -9,15 +10,14 @@ import kr.hhplus.be.server.domain.concert.event.ConcertSoldoutEvent;
 import kr.hhplus.be.server.domain.payment.Payment;
 import kr.hhplus.be.server.domain.payment.PaymentRepository;
 import kr.hhplus.be.server.domain.payment.PaymentStatus;
+import kr.hhplus.be.server.domain.payment.event.PaymentSuccessEvent;
 import kr.hhplus.be.server.domain.queue.QueueTokenRepository;
 import kr.hhplus.be.server.domain.reservation.SeatReservation;
 import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
-import kr.hhplus.be.server.domain.user.User;
 import kr.hhplus.be.server.domain.user.UserBalance;
 import kr.hhplus.be.server.domain.user.UserBalanceRepository;
 import kr.hhplus.be.server.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +35,7 @@ public class PaymentTransactionalService {
     private final QueueTokenRepository queueTokenRepository;
 
     private final ConcertSoldoutEventPublisher soldoutEventPublisher;
+    private final PaymentEventPublisher paymentEventPublisher;
 
     /**
      * # Method설명 : 트랜잭션 결제 처리
@@ -55,6 +56,15 @@ public class PaymentTransactionalService {
 
         // 3. 매진 체크 & 랭킹 등록
         soldoutEventPublisher.publish(new ConcertSoldoutEvent(seat.getScheduleId()));
+
+        // 결제 성공 이벤트 발행
+        paymentEventPublisher.publish(new PaymentSuccessEvent(
+                payment.getPaymentId(),
+                userId,
+                reservationId,
+                amount,
+                payment.getCreatedAt()
+        ));
 
         // 4. 후처리
         expireQueueToken(userId, seat.getScheduleId());  // 토큰 만료
