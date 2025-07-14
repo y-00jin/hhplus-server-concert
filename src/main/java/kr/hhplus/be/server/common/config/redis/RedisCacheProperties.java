@@ -1,4 +1,4 @@
-package kr.hhplus.be.server.infrastructure.configuration;
+package kr.hhplus.be.server.common.config.redis;
 
 import lombok.Getter;
 import lombok.Setter;

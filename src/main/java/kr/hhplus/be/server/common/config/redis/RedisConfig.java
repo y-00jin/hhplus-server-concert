@@ -1,4 +1,4 @@
-package kr.hhplus.be.server.infrastructure.configuration;
+package kr.hhplus.be.server.common.config.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;

@@ -1,4 +1,4 @@
-package kr.hhplus.be.server.infrastructure.configuration;
+package kr.hhplus.be.server.common.config.redis;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.CacheManager;
