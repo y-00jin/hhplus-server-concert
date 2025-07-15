@@ -1,20 +1,26 @@
 package kr.hhplus.be.server.integration;
 
-import kr.hhplus.be.server.application.batch.SeatReservationBatch;
-import kr.hhplus.be.server.application.payment.PaymentService;
-import kr.hhplus.be.server.domain.concert.*;
-import kr.hhplus.be.server.domain.payment.Payment;
-import kr.hhplus.be.server.domain.payment.PaymentRepository;
-import kr.hhplus.be.server.domain.queue.QueueStatus;
-import kr.hhplus.be.server.domain.queue.QueueToken;
-import kr.hhplus.be.server.domain.queue.QueueTokenRepository;
-import kr.hhplus.be.server.domain.reservation.ReservationStatus;
-import kr.hhplus.be.server.domain.reservation.SeatReservation;
-import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
-import kr.hhplus.be.server.domain.user.User;
-import kr.hhplus.be.server.domain.user.UserBalance;
-import kr.hhplus.be.server.domain.user.UserBalanceRepository;
-import kr.hhplus.be.server.domain.user.UserRepository;
+
+import kr.hhplus.be.server.concert.domain.concertSchedule.ConcertSchedule;
+import kr.hhplus.be.server.concert.domain.concertSchedule.ConcertScheduleRepository;
+import kr.hhplus.be.server.concert.domain.seat.Seat;
+import kr.hhplus.be.server.concert.domain.seat.SeatRepository;
+import kr.hhplus.be.server.concert.domain.seat.SeatStatus;
+
+import kr.hhplus.be.server.payment.application.PaymentService;
+import kr.hhplus.be.server.payment.domain.Payment;
+import kr.hhplus.be.server.payment.domain.PaymentRepository;
+import kr.hhplus.be.server.queue.domain.QueueStatus;
+import kr.hhplus.be.server.queue.domain.QueueToken;
+import kr.hhplus.be.server.queue.domain.QueueTokenRepository;
+import kr.hhplus.be.server.reservation.batch.SeatReservationBatch;
+import kr.hhplus.be.server.reservation.domain.ReservationStatus;
+import kr.hhplus.be.server.reservation.domain.SeatReservation;
+import kr.hhplus.be.server.reservation.domain.SeatReservationRepository;
+import kr.hhplus.be.server.user.domain.user.User;
+import kr.hhplus.be.server.user.domain.user.UserRepository;
+import kr.hhplus.be.server.user.domain.userBalance.UserBalance;
+import kr.hhplus.be.server.user.domain.userBalance.UserBalanceRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +36,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
 
 @SpringBootTest
 @Slf4j

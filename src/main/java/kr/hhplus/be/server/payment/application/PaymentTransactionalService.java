@@ -42,7 +42,7 @@ public class PaymentTransactionalService {
      * # MethodName : doPaymentTransactional
      **/
     @Transactional
-    protected Payment doPaymentTransactional(Long userId, Long reservationId, Long seatId) {
+    public Payment doPaymentTransactional(Long userId, Long reservationId, Long seatId) {
         // 1. 검증 및 데이터 조회
         SeatReservation seatReservation = validateSeatReservation(reservationId, userId);
         Seat seat = validateSeat(seatId);

@@ -1,10 +1,11 @@
 package kr.hhplus.be.server.integration;
 
-import kr.hhplus.be.server.application.user.UserService;
-import kr.hhplus.be.server.domain.user.User;
-import kr.hhplus.be.server.domain.user.UserBalance;
-import kr.hhplus.be.server.domain.user.UserBalanceRepository;
-import kr.hhplus.be.server.domain.user.UserRepository;
+
+import kr.hhplus.be.server.user.application.UserService;
+import kr.hhplus.be.server.user.domain.user.User;
+import kr.hhplus.be.server.user.domain.user.UserRepository;
+import kr.hhplus.be.server.user.domain.userBalance.UserBalance;
+import kr.hhplus.be.server.user.domain.userBalance.UserBalanceRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

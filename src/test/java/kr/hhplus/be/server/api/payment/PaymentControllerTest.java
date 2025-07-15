@@ -1,11 +1,11 @@
 package kr.hhplus.be.server.api.payment;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import kr.hhplus.be.server.api.payment.dto.PaymentRequest;
-import kr.hhplus.be.server.api.payment.dto.PaymentResponse;
-import kr.hhplus.be.server.application.payment.PaymentService;
-import kr.hhplus.be.server.domain.payment.Payment;
-import kr.hhplus.be.server.domain.payment.PaymentStatus;
+import kr.hhplus.be.server.payment.api.PaymentController;
+import kr.hhplus.be.server.payment.application.PaymentService;
+import kr.hhplus.be.server.payment.domain.Payment;
+import kr.hhplus.be.server.payment.domain.PaymentStatus;
+import kr.hhplus.be.server.payment.dto.request.PaymentRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -17,7 +17,8 @@ import java.time.LocalDateTime;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(PaymentController.class)
 class PaymentControllerTest {

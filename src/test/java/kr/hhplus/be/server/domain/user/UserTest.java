@@ -1,9 +1,9 @@
 package kr.hhplus.be.server.domain.user;
 
+import kr.hhplus.be.server.user.domain.user.User;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
-
 import static org.assertj.core.api.Assertions.*;
 
 class UserTest {

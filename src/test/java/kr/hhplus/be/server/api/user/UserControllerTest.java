@@ -2,12 +2,13 @@ package kr.hhplus.be.server.api.user;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import kr.hhplus.be.server.api.user.dto.UserBalanceRequest;
-import kr.hhplus.be.server.application.user.UserService;
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
-import kr.hhplus.be.server.domain.user.UserBalance;
-import kr.hhplus.be.server.domain.user.UserBalanceType;
+import kr.hhplus.be.server.user.api.UserController;
+import kr.hhplus.be.server.user.application.UserService;
+import kr.hhplus.be.server.user.domain.userBalance.UserBalance;
+import kr.hhplus.be.server.user.domain.userBalance.UserBalanceType;
+import kr.hhplus.be.server.user.dto.request.UserBalanceRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,11 +18,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserController.class)
 class UserControllerTest {

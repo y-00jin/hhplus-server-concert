@@ -1,5 +1,6 @@
 package kr.hhplus.be.server.domain.concert;
 
+import kr.hhplus.be.server.concert.domain.concertSchedule.ConcertSchedule;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
