@@ -1,13 +1,13 @@
-package kr.hhplus.be.server.infrastructure.persistence.payment;
+package kr.hhplus.be.server.payment.infrastructure.persistence;
 
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
-import kr.hhplus.be.server.domain.payment.Payment;
-import kr.hhplus.be.server.domain.payment.PaymentRepository;
-import kr.hhplus.be.server.infrastructure.persistence.reservation.SeatReservationEntity;
-import kr.hhplus.be.server.infrastructure.persistence.reservation.SpringDataSeatReservationJpaRepository;
-import kr.hhplus.be.server.infrastructure.persistence.user.SpringDataUserJpaRepository;
-import kr.hhplus.be.server.infrastructure.persistence.user.UserEntity;
+import kr.hhplus.be.server.payment.domain.Payment;
+import kr.hhplus.be.server.payment.domain.PaymentRepository;
+import kr.hhplus.be.server.reservation.infrastructure.persistence.SeatReservationEntity;
+import kr.hhplus.be.server.reservation.infrastructure.persistence.SpringDataSeatReservationJpaRepository;
+import kr.hhplus.be.server.user.infrastructure.persistence.user.SpringDataUserJpaRepository;
+import kr.hhplus.be.server.user.infrastructure.persistence.user.UserEntity;
 import org.springframework.stereotype.Repository;
 
 @Repository

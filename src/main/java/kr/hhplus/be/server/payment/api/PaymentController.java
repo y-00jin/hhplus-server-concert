@@ -1,9 +1,9 @@
-package kr.hhplus.be.server.api.payment;
+package kr.hhplus.be.server.payment.api;
 
-import kr.hhplus.be.server.api.payment.dto.PaymentRequest;
-import kr.hhplus.be.server.api.payment.dto.PaymentResponse;
-import kr.hhplus.be.server.application.payment.PaymentService;
-import kr.hhplus.be.server.domain.payment.Payment;
+import kr.hhplus.be.server.payment.application.PaymentService;
+import kr.hhplus.be.server.payment.domain.Payment;
+import kr.hhplus.be.server.payment.dto.request.PaymentRequest;
+import kr.hhplus.be.server.payment.dto.response.PaymentResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

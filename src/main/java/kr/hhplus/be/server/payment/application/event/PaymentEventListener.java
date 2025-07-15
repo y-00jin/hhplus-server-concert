@@ -1,7 +1,7 @@
-package kr.hhplus.be.server.application.payment.event;
+package kr.hhplus.be.server.payment.application.event;
 
 import kr.hhplus.be.server.application.dataPlatform.DataPlatformService;
-import kr.hhplus.be.server.domain.payment.event.PaymentSuccessEvent;
+import kr.hhplus.be.server.payment.domain.event.PaymentSuccessEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;

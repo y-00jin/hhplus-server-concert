@@ -1,4 +1,4 @@
-package kr.hhplus.be.server.api.payment.dto;
+package kr.hhplus.be.server.payment.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

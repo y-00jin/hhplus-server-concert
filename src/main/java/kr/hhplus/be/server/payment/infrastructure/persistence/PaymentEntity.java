@@ -1,9 +1,9 @@
-package kr.hhplus.be.server.infrastructure.persistence.payment;
+package kr.hhplus.be.server.payment.infrastructure.persistence;
 
 import jakarta.persistence.*;
-import kr.hhplus.be.server.domain.payment.PaymentStatus;
-import kr.hhplus.be.server.infrastructure.persistence.reservation.SeatReservationEntity;
-import kr.hhplus.be.server.infrastructure.persistence.user.UserEntity;
+import kr.hhplus.be.server.payment.domain.PaymentStatus;
+import kr.hhplus.be.server.reservation.infrastructure.persistence.SeatReservationEntity;
+import kr.hhplus.be.server.user.infrastructure.persistence.user.UserEntity;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;

@@ -1,4 +1,4 @@
-package kr.hhplus.be.server.domain.payment.event;
+package kr.hhplus.be.server.payment.domain.event;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
