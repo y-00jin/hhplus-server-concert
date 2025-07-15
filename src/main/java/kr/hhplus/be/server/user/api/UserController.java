@@ -1,10 +1,10 @@
-package kr.hhplus.be.server.api.user;
+package kr.hhplus.be.server.user.api;
 
 
-import kr.hhplus.be.server.api.user.dto.UserBalanceRequest;
-import kr.hhplus.be.server.api.user.dto.UserBalanceResponse;
-import kr.hhplus.be.server.application.user.UserService;
-import kr.hhplus.be.server.domain.user.UserBalance;
+import kr.hhplus.be.server.user.application.UserService;
+import kr.hhplus.be.server.user.domain.userBalance.UserBalance;
+import kr.hhplus.be.server.user.dto.request.UserBalanceRequest;
+import kr.hhplus.be.server.user.dto.response.UserBalanceResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

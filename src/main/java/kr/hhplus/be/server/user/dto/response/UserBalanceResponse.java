@@ -1,6 +1,6 @@
-package kr.hhplus.be.server.api.user.dto;
+package kr.hhplus.be.server.user.dto.response;
 
-import kr.hhplus.be.server.domain.user.UserBalanceType;
+import kr.hhplus.be.server.user.domain.userBalance.UserBalanceType;
 import lombok.Builder;
 import lombok.Getter;
 

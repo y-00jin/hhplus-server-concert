@@ -1,8 +1,8 @@
-package kr.hhplus.be.server.infrastructure.persistence.user;
+package kr.hhplus.be.server.user.infrastructure.persistence.user;
 
 
-import kr.hhplus.be.server.domain.user.User;
-import kr.hhplus.be.server.domain.user.UserRepository;
+import kr.hhplus.be.server.user.domain.user.User;
+import kr.hhplus.be.server.user.domain.user.UserRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;

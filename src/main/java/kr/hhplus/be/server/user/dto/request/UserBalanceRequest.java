@@ -1,6 +1,5 @@
-package kr.hhplus.be.server.api.user.dto;
+package kr.hhplus.be.server.user.dto.request;
 
-import kr.hhplus.be.server.domain.user.UserBalanceType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,6 +9,6 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserBalanceRequest{
+public class UserBalanceRequest {
     private long amount;
 }

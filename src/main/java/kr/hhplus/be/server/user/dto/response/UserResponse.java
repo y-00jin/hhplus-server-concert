@@ -1,4 +1,4 @@
-package kr.hhplus.be.server.api.user.dto;
+package kr.hhplus.be.server.user.dto.response;
 
 import lombok.Builder;
 import lombok.Getter;

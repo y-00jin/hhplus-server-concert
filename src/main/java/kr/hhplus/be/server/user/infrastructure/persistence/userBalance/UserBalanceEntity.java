@@ -1,8 +1,9 @@
-package kr.hhplus.be.server.infrastructure.persistence.user;
+package kr.hhplus.be.server.user.infrastructure.persistence.userBalance;
 
 
 import jakarta.persistence.*;
-import kr.hhplus.be.server.domain.user.UserBalanceType;
+import kr.hhplus.be.server.user.domain.userBalance.UserBalanceType;
+import kr.hhplus.be.server.user.infrastructure.persistence.user.UserEntity;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 

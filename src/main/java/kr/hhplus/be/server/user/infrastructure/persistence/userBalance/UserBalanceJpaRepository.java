@@ -1,10 +1,12 @@
-package kr.hhplus.be.server.infrastructure.persistence.user;
+package kr.hhplus.be.server.user.infrastructure.persistence.userBalance;
 
 
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
-import kr.hhplus.be.server.domain.user.UserBalance;
-import kr.hhplus.be.server.domain.user.UserBalanceRepository;
+import kr.hhplus.be.server.user.domain.userBalance.UserBalance;
+import kr.hhplus.be.server.user.domain.userBalance.UserBalanceRepository;
+import kr.hhplus.be.server.user.infrastructure.persistence.user.SpringDataUserJpaRepository;
+import kr.hhplus.be.server.user.infrastructure.persistence.user.UserEntity;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
