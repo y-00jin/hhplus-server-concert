@@ -3,7 +3,7 @@ package kr.hhplus.be.server.reservation.batch;
 import kr.hhplus.be.server.concert.domain.seat.Seat;
 import kr.hhplus.be.server.concert.domain.seat.SeatRepository;
 import kr.hhplus.be.server.concert.domain.seat.SeatStatus;
-import kr.hhplus.be.server.domain.lock.DistributedLockRepository;
+import kr.hhplus.be.server.lock.domain.DistributedLockRepository;
 import kr.hhplus.be.server.queue.domain.QueueTokenRepository;
 import kr.hhplus.be.server.reservation.domain.ReservationStatus;
 import kr.hhplus.be.server.reservation.domain.SeatReservation;

@@ -3,7 +3,7 @@ package kr.hhplus.be.server.payment.application;
 
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
-import kr.hhplus.be.server.domain.lock.DistributedLockRepository;
+import kr.hhplus.be.server.lock.domain.DistributedLockRepository;
 import kr.hhplus.be.server.payment.domain.Payment;
 import kr.hhplus.be.server.reservation.domain.SeatReservationRepository;
 import kr.hhplus.be.server.user.domain.user.User;

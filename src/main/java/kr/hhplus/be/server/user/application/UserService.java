@@ -3,7 +3,7 @@ package kr.hhplus.be.server.user.application;
 
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
-import kr.hhplus.be.server.domain.lock.DistributedLockRepository;
+import kr.hhplus.be.server.lock.domain.DistributedLockRepository;
 import kr.hhplus.be.server.user.domain.user.User;
 import kr.hhplus.be.server.user.domain.user.UserRepository;
 import kr.hhplus.be.server.user.domain.userBalance.UserBalance;

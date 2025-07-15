@@ -1,4 +1,4 @@
-package kr.hhplus.be.server.domain.lock;
+package kr.hhplus.be.server.lock.domain;
 
 import java.util.List;
 import java.util.function.Supplier;

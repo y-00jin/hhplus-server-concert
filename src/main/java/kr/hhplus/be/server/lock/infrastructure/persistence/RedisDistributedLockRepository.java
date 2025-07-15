@@ -1,8 +1,8 @@
-package kr.hhplus.be.server.infrastructure.persistence.lock;
+package kr.hhplus.be.server.lock.infrastructure.persistence;
 
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
-import kr.hhplus.be.server.domain.lock.DistributedLockRepository;
+import kr.hhplus.be.server.lock.domain.DistributedLockRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
