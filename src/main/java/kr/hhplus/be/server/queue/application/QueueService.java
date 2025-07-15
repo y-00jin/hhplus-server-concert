@@ -1,12 +1,12 @@
-package kr.hhplus.be.server.application.queue;
+package kr.hhplus.be.server.queue.application;
 
 
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
-import kr.hhplus.be.server.domain.concert.ConcertScheduleRepository;
-import kr.hhplus.be.server.domain.queue.QueueToken;
-import kr.hhplus.be.server.domain.queue.QueueTokenRepository;
-import kr.hhplus.be.server.domain.user.UserRepository;
+import kr.hhplus.be.server.concert.domain.concertSchedule.ConcertScheduleRepository;
+import kr.hhplus.be.server.queue.domain.QueueToken;
+import kr.hhplus.be.server.queue.domain.QueueTokenRepository;
+import kr.hhplus.be.server.user.domain.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

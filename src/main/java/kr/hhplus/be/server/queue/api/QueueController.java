@@ -1,9 +1,9 @@
-package kr.hhplus.be.server.api.queue;
+package kr.hhplus.be.server.queue.api;
 
-import kr.hhplus.be.server.api.queue.dto.QueueTokenRequest;
-import kr.hhplus.be.server.api.queue.dto.QueueTokenResponse;
-import kr.hhplus.be.server.application.queue.QueueService;
-import kr.hhplus.be.server.domain.queue.QueueToken;
+import kr.hhplus.be.server.queue.application.QueueService;
+import kr.hhplus.be.server.queue.domain.QueueToken;
+import kr.hhplus.be.server.queue.dto.request.QueueTokenRequest;
+import kr.hhplus.be.server.queue.dto.response.QueueTokenResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

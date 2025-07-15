@@ -1,4 +1,4 @@
-package kr.hhplus.be.server.domain.queue;
+package kr.hhplus.be.server.queue.domain;
 
 import java.util.Optional;
 

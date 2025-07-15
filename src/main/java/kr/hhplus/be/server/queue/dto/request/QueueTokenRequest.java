@@ -1,4 +1,4 @@
-package kr.hhplus.be.server.api.queue.dto;
+package kr.hhplus.be.server.queue.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

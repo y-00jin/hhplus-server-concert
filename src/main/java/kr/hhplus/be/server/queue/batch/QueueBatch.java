@@ -1,8 +1,8 @@
-package kr.hhplus.be.server.application.batch;
+package kr.hhplus.be.server.queue.batch;
 
-import kr.hhplus.be.server.application.queue.QueueService;
-import kr.hhplus.be.server.domain.concert.ConcertSchedule;
-import kr.hhplus.be.server.domain.concert.ConcertScheduleRepository;
+import kr.hhplus.be.server.concert.domain.concertSchedule.ConcertSchedule;
+import kr.hhplus.be.server.concert.domain.concertSchedule.ConcertScheduleRepository;
+import kr.hhplus.be.server.queue.application.QueueService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

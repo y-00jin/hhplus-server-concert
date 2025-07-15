@@ -1,10 +1,10 @@
-package kr.hhplus.be.server.infrastructure.persistence.queue;
+package kr.hhplus.be.server.queue.infrastructure.persistence;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import kr.hhplus.be.server.domain.queue.QueueStatus;
-import kr.hhplus.be.server.domain.queue.QueueToken;
-import kr.hhplus.be.server.domain.queue.QueueTokenRepository;
+import kr.hhplus.be.server.queue.domain.QueueStatus;
+import kr.hhplus.be.server.queue.domain.QueueToken;
+import kr.hhplus.be.server.queue.domain.QueueTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
@@ -18,7 +18,7 @@ import java.util.Set;
 
 @Repository
 @RequiredArgsConstructor
-public class RedisQueueTokenRepository implements QueueTokenRepository {
+public class RedisQueueTokenRepository implements QueueTokenRepository{
 
     private final RedisTemplate<String, Object> redisTemplate;
 
