@@ -1,4 +1,4 @@
-package kr.hhplus.be.server.domain.reservation;
+package kr.hhplus.be.server.reservation.domain;
 
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;

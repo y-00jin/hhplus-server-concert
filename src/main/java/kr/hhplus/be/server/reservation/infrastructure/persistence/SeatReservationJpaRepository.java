@@ -1,14 +1,14 @@
-package kr.hhplus.be.server.infrastructure.persistence.reservation;
+package kr.hhplus.be.server.reservation.infrastructure.persistence;
 
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
-import kr.hhplus.be.server.domain.reservation.ReservationStatus;
-import kr.hhplus.be.server.domain.reservation.SeatReservation;
-import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
-import kr.hhplus.be.server.infrastructure.persistence.concert.SeatEntity;
-import kr.hhplus.be.server.infrastructure.persistence.concert.SpringDataSeatJpaRepository;
-import kr.hhplus.be.server.infrastructure.persistence.user.SpringDataUserJpaRepository;
-import kr.hhplus.be.server.infrastructure.persistence.user.UserEntity;
+import kr.hhplus.be.server.concert.infrastructure.persistence.seat.SeatEntity;
+import kr.hhplus.be.server.concert.infrastructure.persistence.seat.SpringDataSeatJpaRepository;
+import kr.hhplus.be.server.reservation.domain.ReservationStatus;
+import kr.hhplus.be.server.reservation.domain.SeatReservation;
+import kr.hhplus.be.server.reservation.domain.SeatReservationRepository;
+import kr.hhplus.be.server.user.infrastructure.persistence.user.SpringDataUserJpaRepository;
+import kr.hhplus.be.server.user.infrastructure.persistence.user.UserEntity;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;

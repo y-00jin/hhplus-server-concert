@@ -1,9 +1,9 @@
-package kr.hhplus.be.server.api.reservation;
+package kr.hhplus.be.server.reservation.api;
 
-import kr.hhplus.be.server.api.reservation.dto.SeatReservationRequest;
-import kr.hhplus.be.server.api.reservation.dto.SeatReservationResponse;
-import kr.hhplus.be.server.application.reservation.ReserveSeatService;
-import kr.hhplus.be.server.domain.reservation.SeatReservation;
+import kr.hhplus.be.server.reservation.application.ReserveSeatService;
+import kr.hhplus.be.server.reservation.domain.SeatReservation;
+import kr.hhplus.be.server.reservation.dto.request.SeatReservationRequest;
+import kr.hhplus.be.server.reservation.dto.response.SeatReservationResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

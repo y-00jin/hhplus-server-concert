@@ -1,13 +1,13 @@
-package kr.hhplus.be.server.application.batch;
+package kr.hhplus.be.server.reservation.batch;
 
-import kr.hhplus.be.server.domain.concert.Seat;
-import kr.hhplus.be.server.domain.concert.SeatRepository;
-import kr.hhplus.be.server.domain.concert.SeatStatus;
+import kr.hhplus.be.server.concert.domain.seat.Seat;
+import kr.hhplus.be.server.concert.domain.seat.SeatRepository;
+import kr.hhplus.be.server.concert.domain.seat.SeatStatus;
 import kr.hhplus.be.server.domain.lock.DistributedLockRepository;
-import kr.hhplus.be.server.domain.queue.QueueTokenRepository;
-import kr.hhplus.be.server.domain.reservation.ReservationStatus;
-import kr.hhplus.be.server.domain.reservation.SeatReservation;
-import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
+import kr.hhplus.be.server.queue.domain.QueueTokenRepository;
+import kr.hhplus.be.server.reservation.domain.ReservationStatus;
+import kr.hhplus.be.server.reservation.domain.SeatReservation;
+import kr.hhplus.be.server.reservation.domain.SeatReservationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

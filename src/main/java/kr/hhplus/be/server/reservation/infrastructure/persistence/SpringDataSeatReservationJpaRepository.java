@@ -1,7 +1,7 @@
-package kr.hhplus.be.server.infrastructure.persistence.reservation;
+package kr.hhplus.be.server.reservation.infrastructure.persistence;
 
 import jakarta.persistence.LockModeType;
-import kr.hhplus.be.server.domain.reservation.ReservationStatus;
+import kr.hhplus.be.server.reservation.domain.ReservationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
