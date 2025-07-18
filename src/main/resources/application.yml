@@ -41,6 +41,12 @@ spring:
         concert-seats:
           ttl: 60000      # 1분
           max-idle-time: 0
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: payment-group
+
+
 
 ---
 spring.config.activate.on-profile: local, test
