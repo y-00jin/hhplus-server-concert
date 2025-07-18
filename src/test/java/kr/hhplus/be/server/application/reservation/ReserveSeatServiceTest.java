@@ -2,14 +2,19 @@ package kr.hhplus.be.server.application.reservation;
 
 
 import kr.hhplus.be.server.common.exception.ApiException;
-import kr.hhplus.be.server.domain.concert.*;
-import kr.hhplus.be.server.domain.lock.DistributedLockRepository;
-import kr.hhplus.be.server.domain.queue.QueueToken;
-import kr.hhplus.be.server.domain.queue.QueueTokenRepository;
-import kr.hhplus.be.server.domain.reservation.SeatReservation;
-import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
-import kr.hhplus.be.server.domain.user.User;
-import kr.hhplus.be.server.domain.user.UserRepository;
+import kr.hhplus.be.server.concert.domain.concertSchedule.ConcertSchedule;
+import kr.hhplus.be.server.concert.domain.concertSchedule.ConcertScheduleRepository;
+import kr.hhplus.be.server.concert.domain.seat.Seat;
+import kr.hhplus.be.server.concert.domain.seat.SeatRepository;
+import kr.hhplus.be.server.concert.domain.seat.SeatStatus;
+import kr.hhplus.be.server.lock.domain.DistributedLockRepository;
+import kr.hhplus.be.server.queue.domain.QueueToken;
+import kr.hhplus.be.server.queue.domain.QueueTokenRepository;
+import kr.hhplus.be.server.reservation.application.ReserveSeatService;
+import kr.hhplus.be.server.reservation.domain.SeatReservation;
+import kr.hhplus.be.server.reservation.domain.SeatReservationRepository;
+import kr.hhplus.be.server.user.domain.user.User;
+import kr.hhplus.be.server.user.domain.user.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -2,10 +2,11 @@ package kr.hhplus.be.server.api.reservation;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import kr.hhplus.be.server.api.reservation.dto.SeatReservationRequest;
-import kr.hhplus.be.server.application.reservation.ReserveSeatService;
-import kr.hhplus.be.server.domain.reservation.ReservationStatus;
-import kr.hhplus.be.server.domain.reservation.SeatReservation;
+import kr.hhplus.be.server.reservation.api.SeatReservationController;
+import kr.hhplus.be.server.reservation.application.ReserveSeatService;
+import kr.hhplus.be.server.reservation.domain.ReservationStatus;
+import kr.hhplus.be.server.reservation.domain.SeatReservation;
+import kr.hhplus.be.server.reservation.dto.request.SeatReservationRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -56,9 +56,9 @@ class SeatReservationControllerTest {
         );
 
         when(reserveSeatService.reserveSeat(
-                eq(req.getUserId()),
-                eq(req.getConcertDate()),
-                eq(req.getSeatNumber())
+                req.getUserId(),
+                req.getConcertDate(),
+                req.getSeatNumber()
         )).thenReturn(reservation);
 
         // when & then

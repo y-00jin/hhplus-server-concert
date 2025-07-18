@@ -1,16 +1,18 @@
 package kr.hhplus.be.server.application.payment;
 
 import kr.hhplus.be.server.common.exception.ApiException;
-import kr.hhplus.be.server.domain.concert.Seat;
-import kr.hhplus.be.server.domain.concert.SeatStatus;
-import kr.hhplus.be.server.domain.lock.DistributedLockRepository;
-import kr.hhplus.be.server.domain.payment.Payment;
-import kr.hhplus.be.server.domain.payment.PaymentStatus;
-import kr.hhplus.be.server.domain.reservation.ReservationStatus;
-import kr.hhplus.be.server.domain.reservation.SeatReservation;
-import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
-import kr.hhplus.be.server.domain.user.User;
-import kr.hhplus.be.server.domain.user.UserRepository;
+import kr.hhplus.be.server.concert.domain.seat.Seat;
+import kr.hhplus.be.server.concert.domain.seat.SeatStatus;
+import kr.hhplus.be.server.lock.domain.DistributedLockRepository;
+import kr.hhplus.be.server.payment.application.PaymentService;
+import kr.hhplus.be.server.payment.application.PaymentTransactionalService;
+import kr.hhplus.be.server.payment.domain.Payment;
+import kr.hhplus.be.server.payment.domain.PaymentStatus;
+import kr.hhplus.be.server.reservation.domain.ReservationStatus;
+import kr.hhplus.be.server.reservation.domain.SeatReservation;
+import kr.hhplus.be.server.reservation.domain.SeatReservationRepository;
+import kr.hhplus.be.server.user.domain.user.User;
+import kr.hhplus.be.server.user.domain.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,11 +31,15 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
 
-    @Mock SeatReservationRepository seatReservationRepository;
-    @Mock UserRepository userRepository;
-    @Mock DistributedLockRepository distributedLockRepository;
+    @Mock
+    SeatReservationRepository seatReservationRepository;
+    @Mock
+    UserRepository userRepository;
+    @Mock
+    DistributedLockRepository distributedLockRepository;
 
-    @Mock PaymentTransactionalService paymentTransactionalService;
+    @Mock
+    PaymentTransactionalService paymentTransactionalService;
 
     @InjectMocks
     PaymentService paymentService;
@@ -47,6 +53,7 @@ class PaymentServiceTest {
     User user;
     Seat seat;
     SeatReservation reservation;
+
     @BeforeEach
     void setUp() {
         user = new User(userId, "", "test@test.com", "pw", "사용자", null, null);

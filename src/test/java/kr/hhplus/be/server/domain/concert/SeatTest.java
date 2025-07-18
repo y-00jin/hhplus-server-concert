@@ -3,11 +3,14 @@ package kr.hhplus.be.server.domain.concert;
 
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
+import kr.hhplus.be.server.concert.domain.seat.Seat;
+import kr.hhplus.be.server.concert.domain.seat.SeatStatus;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SeatTest {
 

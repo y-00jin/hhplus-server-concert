@@ -1,5 +1,7 @@
 package kr.hhplus.be.server.domain.reservation;
 
+import kr.hhplus.be.server.reservation.domain.ReservationStatus;
+import kr.hhplus.be.server.reservation.domain.SeatReservation;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

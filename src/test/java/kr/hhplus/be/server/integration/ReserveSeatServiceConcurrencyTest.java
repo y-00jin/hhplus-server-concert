@@ -1,15 +1,20 @@
 package kr.hhplus.be.server.integration;
 
-import kr.hhplus.be.server.application.queue.QueueService;
-import kr.hhplus.be.server.application.reservation.ReserveSeatService;
+
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
-import kr.hhplus.be.server.domain.concert.*;
-import kr.hhplus.be.server.domain.queue.QueueTokenRepository;
-import kr.hhplus.be.server.domain.reservation.SeatReservation;
-import kr.hhplus.be.server.domain.reservation.SeatReservationRepository;
-import kr.hhplus.be.server.domain.user.User;
-import kr.hhplus.be.server.domain.user.UserRepository;
+import kr.hhplus.be.server.concert.domain.concertSchedule.ConcertSchedule;
+import kr.hhplus.be.server.concert.domain.concertSchedule.ConcertScheduleRepository;
+import kr.hhplus.be.server.concert.domain.seat.Seat;
+import kr.hhplus.be.server.concert.domain.seat.SeatRepository;
+import kr.hhplus.be.server.concert.domain.seat.SeatStatus;
+import kr.hhplus.be.server.queue.application.QueueService;
+import kr.hhplus.be.server.queue.domain.QueueTokenRepository;
+import kr.hhplus.be.server.reservation.application.ReserveSeatService;
+import kr.hhplus.be.server.reservation.domain.SeatReservation;
+import kr.hhplus.be.server.reservation.domain.SeatReservationRepository;
+import kr.hhplus.be.server.user.domain.user.User;
+import kr.hhplus.be.server.user.domain.user.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +31,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.*;
 
 
 @SpringBootTest

@@ -2,7 +2,12 @@ package kr.hhplus.be.server.domain.user;
 
 import kr.hhplus.be.server.common.exception.ApiException;
 import kr.hhplus.be.server.common.exception.ErrorCode;
+import kr.hhplus.be.server.user.domain.userBalance.UserBalance;
+import kr.hhplus.be.server.user.domain.userBalance.UserBalanceType;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import static org.assertj.core.api.Assertions.*;
 
