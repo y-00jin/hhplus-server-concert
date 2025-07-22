@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class DataPlatformClient {
+public class PaymentProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
