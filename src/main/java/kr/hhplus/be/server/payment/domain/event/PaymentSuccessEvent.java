@@ -1,17 +1,21 @@
 package kr.hhplus.be.server.payment.domain.event;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Getter
-@RequiredArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class PaymentSuccessEvent {
 
-    private final Long paymentId;
-    private final Long userId;
-    private final Long reservationId;
-    private final long amount;
-    private final LocalDateTime createdAt;
+    private Long paymentId;
+    private Long userId;
+    private Long reservationId;
+    private long amount;
+    private LocalDateTime createdAt;
+
 }

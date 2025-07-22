@@ -25,7 +25,7 @@ public class PaymentSuccessConsumer {
 
         // 멱등성: 이미 처리한 메시지면 무시
         if (!processedPaymentIds.add(paymentId)) {
-            log.warn("Kafka 컨슈머: 중복 메시지! paymentId={} 이미 처리됨, skip", paymentId);
+            log.warn("Kafka 컨슈머: 중복 메시지 paymentId={} 이미 처리됨, skip", paymentId);
             return;
         }
 
